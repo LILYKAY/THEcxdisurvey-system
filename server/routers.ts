@@ -47,6 +47,7 @@ import {
   updateUserRole,
   upsertResponseAnswer,
   upsertUser,
+  countUsers,
 } from "./db";
 
 // ─── Password helpers ─────────────────────────────────────────────────────────
@@ -99,12 +100,16 @@ export const appRouter = router({
         }
         const hash = await hashPassword(password);
         const openId = `local_${nanoid(24)}`;
+        // The very first registered user automatically becomes admin
+        const totalUsers = await countUsers();
+        const role = totalUsers === 0 ? "admin" : "user";
         await upsertUser({
           openId,
           name,
           email,
           loginMethod: "email",
           passwordHash: hash,
+          role,
           lastSignedIn: new Date(),
         });
         const user = await getUserByEmail(email);
@@ -196,7 +201,25 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        return createOrganization({ ...input, ownerId: ctx.user.id });
+        const org = await createOrganization({ ...input, ownerId: ctx.user.id });
+        // Auto-provision all 4 survey forms immediately on org creation
+        const formKeys = ["current_customers", "dropped_customers", "repeat_trial", "single_trial"] as const;
+        const titles: Record<string, string> = {
+          current_customers: "Current Customers Survey",
+          dropped_customers: "Dropped / Lapsed Customers Survey",
+          repeat_trial: "Repeat Trial Firms Survey",
+          single_trial: "Single-Trial Firms Survey",
+        };
+        for (const formKey of formKeys) {
+          const survey = await createSurvey({
+            organizationId: org.id,
+            formKey,
+            title: titles[formKey]!,
+          });
+          const token = nanoid(32);
+          await createSurveyLink({ surveyId: survey.id, token, label: "Default Link" });
+        }
+        return org;
       }),
 
     update: orgOwnerProcedure

@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { Building2, ExternalLink, Plus, Zap } from "lucide-react";
+import { Building2, ClipboardList, ExternalLink, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
@@ -26,7 +26,7 @@ function CreateOrgDialog({ onCreated }: { onCreated: () => void }) {
 
   const create = trpc.organizations.create.useMutation({
     onSuccess: () => {
-      toast.success("Organization created");
+      toast.success("Organization created — all 4 survey forms are ready to share!");
       setOpen(false);
       onCreated();
     },
@@ -94,13 +94,6 @@ function CreateOrgDialog({ onCreated }: { onCreated: () => void }) {
 export default function AdminOrganizations() {
   const utils = trpc.useUtils();
   const { data: orgs, isLoading } = trpc.organizations.list.useQuery();
-  const provision = trpc.organizations.provisionSurveys.useMutation({
-    onSuccess: () => {
-      toast.success("All 4 survey forms provisioned with shareable links");
-      utils.organizations.list.invalidate();
-    },
-    onError: (e) => toast.error(e.message),
-  });
   const [, navigate] = useLocation();
 
   return (
@@ -161,11 +154,10 @@ export default function AdminOrganizations() {
                       size="sm"
                       variant="outline"
                       className="flex-1 gap-1.5 text-xs"
-                      disabled={provision.isPending}
-                      onClick={() => provision.mutate({ organizationId: org.id })}
+                      onClick={() => navigate("/admin/surveys")}
                     >
-                      <Zap className="h-3 w-3" />
-                      Provision Surveys
+                      <ClipboardList className="h-3 w-3" />
+                      View Survey Links
                     </Button>
                   </div>
                 </CardContent>

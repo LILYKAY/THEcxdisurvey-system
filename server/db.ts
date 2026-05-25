@@ -101,6 +101,13 @@ export async function getAllUsers() {
   return db.select().from(users).orderBy(desc(users.createdAt));
 }
 
+export async function countUsers(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.select({ count: count() }).from(users);
+  return result[0]?.count ?? 0;
+}
+
 export async function updateUserRole(userId: number, role: "user" | "admin" | "org_owner") {
   const db = await getDb();
   if (!db) return;

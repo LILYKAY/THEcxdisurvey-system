@@ -144,7 +144,7 @@ describe("forms.list", () => {
 describe("organizations.create", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("allows admin to create organization", async () => {
+  it("allows admin to create organization and auto-provisions 4 surveys", async () => {
     vi.mocked(db.createOrganization).mockResolvedValue({
       id: 1,
       name: "Test Org",
@@ -157,6 +157,24 @@ describe("organizations.create", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+    vi.mocked(db.createSurvey).mockResolvedValue({
+      id: 1,
+      organizationId: 1,
+      formKey: "current_customers",
+      title: "Current Customers Survey",
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(db.createSurveyLink).mockResolvedValue({
+      id: 1,
+      surveyId: 1,
+      token: "testtoken",
+      label: "Default Link",
+      isActive: true,
+      createdAt: new Date(),
+      expiresAt: null,
+    });
 
     const ctx = makeAdminCtx();
     const caller = appRouter.createCaller(ctx);
@@ -165,6 +183,9 @@ describe("organizations.create", () => {
     expect(db.createOrganization).toHaveBeenCalledWith(
       expect.objectContaining({ name: "Test Org", slug: "test-org" })
     );
+    // Should auto-provision 4 surveys
+    expect(db.createSurvey).toHaveBeenCalledTimes(4);
+    expect(db.createSurveyLink).toHaveBeenCalledTimes(4);
   });
 
   it("rejects non-admin from creating organization", async () => {
