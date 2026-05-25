@@ -1,5 +1,6 @@
 import { and, count, desc, eq, gte, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { type MySql2Database, drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import {
   InsertOrganization,
   InsertRespondent,
@@ -20,12 +21,21 @@ import {
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
-let _db: ReturnType<typeof drizzle> | null = null;
-
+let _db: MySql2Database | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      // Use a connection pool for TiDB Serverless compatibility.
+      // A raw connection string creates a single connection that TiDB may drop;
+      // a pool keeps connections alive and reconnects automatically.
+      const pool = mysql.createPool({
+        uri: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: true },
+        waitForConnections: true,
+        connectionLimit: 5,
+        enableKeepAlive: true,
+      });
+      _db = drizzle(pool);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;

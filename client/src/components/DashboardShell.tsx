@@ -74,19 +74,19 @@ export function DashboardShell({ children, navItems, title }: DashboardShellProp
           {navItems.map((item) => {
             const isActive = location === item.href || location.startsWith(item.href + "/");
             return (
-              <Link key={item.href} href={item.href}>
-                <a
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
-                  )}
-                >
-                  <item.icon className="h-4 w-4 flex-shrink-0" />
-                  {item.label}
-                  {isActive && <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-50" />}
-                </a>
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                )}
+              >
+                <item.icon className="h-4 w-4 flex-shrink-0" />
+                {item.label}
+                {isActive && <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-50" />}
               </Link>
             );
           })}
