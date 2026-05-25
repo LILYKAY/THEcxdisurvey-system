@@ -1,37 +1,60 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+
+// Pages
 import Home from "./pages/Home";
+import NotFound from "./pages/NotFound";
+import SurveyPage from "./pages/SurveyPage";
+import SurveyComplete from "./pages/SurveyComplete";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminOrganizations from "./pages/admin/AdminOrganizations";
+import AdminRespondents from "./pages/admin/AdminRespondents";
+import AdminSurveyInsights from "./pages/admin/AdminSurveyInsights";
+import AdminRespondentDetail from "./pages/admin/AdminRespondentDetail";
+import OrgDashboard from "./pages/org/OrgDashboard";
+import OrgRespondents from "./pages/org/OrgRespondents";
+import OrgRespondentDetail from "./pages/org/OrgRespondentDetail";
+import OrgSurveyInsights from "./pages/org/OrgSurveyInsights";
+import OrgSettings from "./pages/org/OrgSettings";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
+      {/* Public */}
+      <Route path="/" component={Home} />
+      <Route path="/s/:token" component={SurveyPage} />
+      <Route path="/survey-complete" component={SurveyComplete} />
+
+      {/* Admin */}
+      <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/users" component={AdminUsers} />
+      <Route path="/admin/organizations" component={AdminOrganizations} />
+      <Route path="/admin/respondents" component={AdminRespondents} />
+      <Route path="/admin/respondents/:id" component={AdminRespondentDetail} />
+      <Route path="/admin/surveys/:id/insights" component={AdminSurveyInsights} />
+
+      {/* Org Owner */}
+      <Route path="/org/:orgId" component={OrgDashboard} />
+      <Route path="/org/:orgId/respondents" component={OrgRespondents} />
+      <Route path="/org/:orgId/respondents/:respondentId" component={OrgRespondentDetail} />
+      <Route path="/org/:orgId/surveys/:surveyId/insights" component={OrgSurveyInsights} />
+      <Route path="/org/:orgId/settings" component={OrgSettings} />
+
       <Route component={NotFound} />
     </Switch>
   );
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="light">
         <TooltipProvider>
-          <Toaster />
+          <Toaster position="top-right" richColors />
           <Router />
         </TooltipProvider>
       </ThemeProvider>
