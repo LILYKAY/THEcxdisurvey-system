@@ -2,10 +2,12 @@ import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { SURVEY_FORMS } from "../shared/surveyForms";
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { sdk } from "./_core/sdk";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import bcrypt from "bcryptjs";
 import {
   completeSurveyResponse,
   createOrganization,
@@ -21,6 +23,7 @@ import {
   getAllSurveys,
   getAllSurveysWithStats,
   getAllUsers,
+  getUserByEmail,
   getAnswerHistory,
   getAnswersByResponse,
   getFullAnswerHistoryByResponse,
@@ -43,7 +46,16 @@ import {
   updateOrganization,
   updateUserRole,
   upsertResponseAnswer,
+  upsertUser,
 } from "./db";
+
+// ─── Password helpers ─────────────────────────────────────────────────────────
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 12);
+}
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
+}
 
 // ─── Admin guard ──────────────────────────────────────────────────────────────
 
@@ -70,6 +82,63 @@ export const appRouter = router({
 
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
+
+    register: publicProcedure
+      .input(
+        z.object({
+          name: z.string().min(2, "Name must be at least 2 characters"),
+          email: z.string().email("Invalid email address"),
+          password: z.string().min(8, "Password must be at least 8 characters"),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const { name, email, password } = input;
+        const existing = await getUserByEmail(email);
+        if (existing) {
+          throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists" });
+        }
+        const hash = await hashPassword(password);
+        const openId = `local_${nanoid(24)}`;
+        await upsertUser({
+          openId,
+          name,
+          email,
+          loginMethod: "email",
+          passwordHash: hash,
+          lastSignedIn: new Date(),
+        });
+        const user = await getUserByEmail(email);
+        if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const token = await sdk.createSessionToken(user.openId, { name: user.name ?? "" });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS / 1000 });
+        return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+      }),
+
+    login: publicProcedure
+      .input(
+        z.object({
+          email: z.string().email("Invalid email address"),
+          password: z.string().min(1, "Password is required"),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const { email, password } = input;
+        const user = await getUserByEmail(email);
+        if (!user || !user.passwordHash) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+        }
+        const valid = await verifyPassword(password, user.passwordHash);
+        if (!valid) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+        }
+        await upsertUser({ openId: user.openId, lastSignedIn: new Date() });
+        const token = await sdk.createSessionToken(user.openId, { name: user.name ?? "" });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS / 1000 });
+        return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+      }),
+
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });

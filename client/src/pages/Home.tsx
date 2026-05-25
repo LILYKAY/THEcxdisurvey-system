@@ -1,6 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { getLoginUrl } from "@/const";
 import {
   BarChart3,
   CheckCircle2,
@@ -89,7 +88,7 @@ export default function Home() {
 
   const handleGetStarted = () => {
     if (!isAuthenticated) {
-      window.location.href = getLoginUrl();
+      navigate("/signup");
     } else if (user?.role === "admin") {
       navigate("/admin");
     } else if (user?.role === "org_owner") {
@@ -129,7 +128,7 @@ export default function Home() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => (window.location.href = getLoginUrl())}
+                  onClick={() => navigate("/login")}
                 >
                   Sign In
                 </Button>
@@ -262,7 +261,7 @@ export default function Home() {
             Ready to start collecting insights?
           </h2>
           <p className="mt-4 text-primary-foreground/70">
-            Sign in to access your dashboard and begin distributing surveys today.
+            Create your account and begin distributing surveys today.
           </p>
           <Button
             size="lg"

@@ -6,6 +6,8 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 
 // Pages
 import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import NotFound from "./pages/NotFound";
 import SurveyPage from "./pages/SurveyPage";
 import SurveyComplete from "./pages/SurveyComplete";
@@ -25,6 +27,10 @@ import OrgSettings from "./pages/org/OrgSettings";
 function Router() {
   return (
     <Switch>
+      {/* Auth */}
+      <Route path="/login" component={Login} />
+      <Route path="/signup" component={Signup} />
+
       {/* Public */}
       <Route path="/" component={Home} />
       <Route path="/s/:token" component={SurveyPage} />

@@ -15,6 +15,13 @@
       "when": 1779718687144,
       "tag": "0001_sturdy_demogoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1779721744353,
+      "tag": "0002_superb_tinkerer",
+      "breakpoints": true
     }
   ]
 }

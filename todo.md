@@ -62,3 +62,16 @@
 
 ## Phase 8: Fixes & Enhancements
 - [x] Add /admin/surveys page listing all provisioned forms across all organizations with links and response counts
+
+## Phase 9: Custom Auth & Responsive Design
+- [x] Install bcryptjs, extend users schema with passwordHash field
+- [x] Apply schema migration for passwordHash column
+- [x] Build custom register/login/logout backend procedures
+- [x] Build responsive Login page (email + password)
+- [x] Build responsive Signup page (name + email + password)
+- [x] Update useAuth hook to use custom auth instead of Manus OAuth
+- [x] Update all routing and auth guards to use custom session
+- [x] Make landing page fully responsive (mobile/tablet/desktop)
+- [x] Make admin dashboard fully responsive
+- [x] Make survey-taking page fully responsive
+- [x] Make DashboardShell sidebar responsive (collapsible on mobile)

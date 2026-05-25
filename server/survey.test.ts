@@ -41,6 +41,8 @@ vi.mock("./db", () => ({
   getResponseTrend: vi.fn(),
   getOrgOverviewMetrics: vi.fn(),
   getOrgResponseTrend: vi.fn(),
+  getUserByEmail: vi.fn(),
+  getAllSurveysWithStats: vi.fn(),
 }));
 
 // ─── Context factories ────────────────────────────────────────────────────────
@@ -272,5 +274,71 @@ describe("surveys.exportCsv", () => {
     const result = await caller.surveys.exportCsv({ surveyId: 1 });
     expect(result.csv).toBeTruthy();
     expect(result.filename).toContain(".csv");
+  });
+});
+
+describe("auth.register", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("rejects registration when email already exists", async () => {
+    vi.mocked(db.getUserByEmail).mockResolvedValue({
+      id: 1,
+      openId: "existing",
+      name: "Existing",
+      email: "taken@example.com",
+      loginMethod: "email",
+      passwordHash: "$2b$12$hash",
+      role: "user" as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    });
+    const ctx = makePublicCtx();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.auth.register({ name: "Test", email: "taken@example.com", password: "password123" })
+    ).rejects.toThrow();
+  });
+
+  it("rejects registration with password shorter than 8 characters", async () => {
+    vi.mocked(db.getUserByEmail).mockResolvedValue(undefined);
+    const ctx = makePublicCtx();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.auth.register({ name: "Test", email: "new@example.com", password: "short" })
+    ).rejects.toThrow();
+  });
+});
+
+describe("auth.login", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("rejects login for non-existent email", async () => {
+    vi.mocked(db.getUserByEmail).mockResolvedValue(undefined);
+    const ctx = makePublicCtx();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.auth.login({ email: "nobody@example.com", password: "password123" })
+    ).rejects.toThrow();
+  });
+
+  it("rejects login for user without a password hash (OAuth-only account)", async () => {
+    vi.mocked(db.getUserByEmail).mockResolvedValue({
+      id: 1,
+      openId: "user-1",
+      name: "Test",
+      email: "test@example.com",
+      loginMethod: "email",
+      passwordHash: null,
+      role: "user" as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    });
+    const ctx = makePublicCtx();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.auth.login({ email: "test@example.com", password: "password123" })
+    ).rejects.toThrow();
   });
 });
