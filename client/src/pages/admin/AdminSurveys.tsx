@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Copy,
+  Download,
   ExternalLink,
   Search,
   Users,
@@ -52,6 +53,74 @@ function copyToClipboard(text: string) {
   navigator.clipboard.writeText(text).then(() => {
     toast.success("Survey link copied to clipboard");
   });
+}
+
+function exportSurveysCsv(
+  surveys: Array<{
+    id: number;
+    title: string;
+    formKey: string;
+    isActive: boolean;
+    createdAt: Date | string;
+    organization: { name: string; slug?: string } | null;
+    links: Array<{ token: string; isActive: boolean; createdAt: Date | string }>;
+    totalResponses: number;
+    completedResponses: number;
+  }>
+) {
+  const headers = [
+    "Survey ID",
+    "Title",
+    "Form Type",
+    "Organization",
+    "Status",
+    "Total Responses",
+    "Completed Responses",
+    "Completion Rate (%)",
+    "Active Survey Link",
+    "Total Links",
+    "Created At",
+  ];
+
+  const rows = surveys.map((s) => {
+    const activeLink = s.links.find((l) => l.isActive);
+    const surveyUrl = activeLink
+      ? `${window.location.origin}/s/${activeLink.token}`
+      : "";
+    const completionRate =
+      s.totalResponses > 0
+        ? Math.round((s.completedResponses / s.totalResponses) * 100)
+        : 0;
+    const formLabel = FORM_LABELS[s.formKey] ?? s.formKey;
+    return [
+      String(s.id),
+      s.title,
+      formLabel,
+      s.organization?.name ?? "",
+      s.isActive ? "Active" : "Inactive",
+      String(s.totalResponses),
+      String(s.completedResponses),
+      String(completionRate),
+      surveyUrl,
+      String(s.links.length),
+      new Date(s.createdAt).toISOString(),
+    ];
+  });
+
+  const csvContent = [headers, ...rows]
+    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `survey-forms-export-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  toast.success(`Exported ${surveys.length} survey form${surveys.length !== 1 ? "s" : ""} to CSV`);
 }
 
 export default function AdminSurveys() {
@@ -104,8 +173,9 @@ export default function AdminSurveys() {
           ))}
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-sm">
+        {/* Search + Export toolbar */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative max-w-sm flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search by form, organization…"
@@ -113,6 +183,17 @@ export default function AdminSurveys() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2 flex-shrink-0"
+            disabled={!surveys || surveys.length === 0}
+            onClick={() => surveys && exportSurveysCsv(surveys)}
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
         </div>
 
         {/* Error state */}
