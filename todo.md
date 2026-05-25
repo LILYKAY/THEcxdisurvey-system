@@ -59,3 +59,6 @@
 - [x] Vitest unit tests for core procedures (14 tests passing)
 - [x] TypeScript zero errors
 - [x] Save checkpoint
+
+## Phase 8: Fixes & Enhancements
+- [x] Add /admin/surveys page listing all provisioned forms across all organizations with links and response counts

@@ -19,6 +19,7 @@ import {
   getAllRespondents,
   getAllSurveyResponses,
   getAllSurveys,
+  getAllSurveysWithStats,
   getAllUsers,
   getAnswerHistory,
   getAnswersByResponse,
@@ -192,6 +193,7 @@ export const appRouter = router({
       }),
 
     listAll: adminProcedure.query(() => getAllSurveys()),
+    listAllWithStats: adminProcedure.query(() => getAllSurveysWithStats()),
 
     get: protectedProcedure
       .input(z.object({ id: z.number() }))

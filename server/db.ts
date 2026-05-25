@@ -197,6 +197,37 @@ export async function getAllSurveys() {
   return db.select().from(surveys).orderBy(desc(surveys.createdAt));
 }
 
+export async function getAllSurveysWithStats() {
+  const db = await getDb();
+  if (!db) return [];
+  const allSurveys = await db
+    .select()
+    .from(surveys)
+    .orderBy(desc(surveys.createdAt));
+  const results = await Promise.all(
+    allSurveys.map(async (survey) => {
+      const org = await db!.select().from(organizations).where(eq(organizations.id, survey.organizationId)).limit(1);
+      const links = await db!.select().from(surveyLinks).where(eq(surveyLinks.surveyId, survey.id));
+      const responses = await db!
+        .select({ cnt: count() })
+        .from(surveyResponses)
+        .where(eq(surveyResponses.surveyId, survey.id));
+      const completedResponses = await db!
+        .select({ cnt: count() })
+        .from(surveyResponses)
+        .where(and(eq(surveyResponses.surveyId, survey.id), eq(surveyResponses.status, "completed")));
+      return {
+        ...survey,
+        organization: org[0] ?? null,
+        links,
+        totalResponses: Number(responses[0]?.cnt ?? 0),
+        completedResponses: Number(completedResponses[0]?.cnt ?? 0),
+      };
+    })
+  );
+  return results;
+}
+
 // ─── Survey Links ─────────────────────────────────────────────────────────────
 
 export async function createSurveyLink(data: InsertSurveyLink) {

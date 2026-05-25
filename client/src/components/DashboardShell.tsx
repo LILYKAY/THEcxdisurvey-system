@@ -6,6 +6,7 @@ import {
   BarChart3,
   Building2,
   ChevronRight,
+  ClipboardList,
   LayoutDashboard,
   LogOut,
   Settings,
@@ -139,6 +140,7 @@ export function DashboardShell({ children, navItems, title }: DashboardShellProp
 export const ADMIN_NAV: NavItem[] = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/organizations", label: "Organizations", icon: Building2 },
+  { href: "/admin/surveys", label: "Survey Forms", icon: ClipboardList },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/respondents", label: "Respondents", icon: Users },
 ];

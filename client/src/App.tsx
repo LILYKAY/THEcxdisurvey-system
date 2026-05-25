@@ -14,6 +14,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminOrganizations from "./pages/admin/AdminOrganizations";
 import AdminRespondents from "./pages/admin/AdminRespondents";
 import AdminSurveyInsights from "./pages/admin/AdminSurveyInsights";
+import AdminSurveys from "./pages/admin/AdminSurveys";
 import AdminRespondentDetail from "./pages/admin/AdminRespondentDetail";
 import OrgDashboard from "./pages/org/OrgDashboard";
 import OrgRespondents from "./pages/org/OrgRespondents";
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/admin/organizations" component={AdminOrganizations} />
       <Route path="/admin/respondents" component={AdminRespondents} />
       <Route path="/admin/respondents/:id" component={AdminRespondentDetail} />
+      <Route path="/admin/surveys" component={AdminSurveys} />
       <Route path="/admin/surveys/:id/insights" component={AdminSurveyInsights} />
 
       {/* Org Owner */}
