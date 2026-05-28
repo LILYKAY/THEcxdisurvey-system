@@ -128,7 +128,7 @@ export default function AdminDashboard() {
                   No responses recorded yet
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={200}>
+                <ResponsiveContainer width="100%" height={200} debounce={100}>
                   <AreaChart data={trendData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorResp" x1="0" y1="0" x2="0" y2="1">
@@ -174,7 +174,7 @@ export default function AdminDashboard() {
                   No data yet
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={200}>
+                <ResponsiveContainer width="100%" height={200} debounce={100}>
                   <BarChart data={formData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.005 260)" />
                     <XAxis dataKey="name" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />

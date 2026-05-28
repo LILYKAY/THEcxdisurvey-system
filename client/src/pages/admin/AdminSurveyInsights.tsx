@@ -160,7 +160,7 @@ export default function AdminSurveyInsights() {
                     {(insight as any).options?.every((o: any) => o.count === 0) ? (
                       <p className="text-sm text-muted-foreground italic">No responses yet</p>
                     ) : (
-                      <ResponsiveContainer width="100%" height={180}>
+                      <ResponsiveContainer width="100%" height={180} debounce={100}>
                         <BarChart
                           data={(insight as any).options}
                           layout="vertical"

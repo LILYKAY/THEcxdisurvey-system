@@ -136,7 +136,7 @@ export default function OrgSurveyInsights() {
                       {(insight as any).options?.every((o: any) => o.count === 0) ? (
                         <p className="text-sm text-muted-foreground italic">No responses yet</p>
                       ) : (
-                        <ResponsiveContainer width="100%" height={Math.max(160, (insight as any).options?.length * 36)}>
+                        <ResponsiveContainer width="100%" height={Math.max(160, (insight as any).options?.length * 36)} debounce={100}>
                           <BarChart
                             data={(insight as any).options}
                             layout="vertical"

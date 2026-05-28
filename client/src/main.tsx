@@ -7,6 +7,28 @@ import superjson from "superjson";
 import App from "./App";
 import "./index.css";
 
+// ── Suppress benign ResizeObserver loop notification ──────────────────────────
+// This warning fires when recharts' ResponsiveContainer triggers a layout
+// change inside a ResizeObserver callback before the browser can deliver all
+// pending notifications. It is harmless and does not affect functionality.
+const _origWindowError = window.onerror;
+window.onerror = (message, ...rest) => {
+  if (typeof message === "string" && message.includes("ResizeObserver loop")) {
+    return true; // suppress
+  }
+  return _origWindowError ? _origWindowError(message, ...rest) : false;
+};
+const _origConsoleError = console.error.bind(console);
+console.error = (...args: unknown[]) => {
+  if (
+    typeof args[0] === "string" &&
+    args[0].includes("ResizeObserver loop")
+  ) {
+    return;
+  }
+  _origConsoleError(...args);
+};
+
 const queryClient = new QueryClient();
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
