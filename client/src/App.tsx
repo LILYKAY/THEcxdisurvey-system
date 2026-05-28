@@ -27,6 +27,9 @@ import OrgInvite from "./pages/org/OrgInvite";
 import OrgInvitations from "./pages/org/OrgInvitations";
 import OrgReports from "./pages/org/OrgReports";
 import OrgCustomQuestions from "./pages/org/OrgCustomQuestions";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import OrgSelect from "./pages/OrgSelect";
 
 function Router() {
   return (
@@ -34,6 +37,9 @@ function Router() {
       {/* Auth */}
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/org-select" component={OrgSelect} />
 
       {/* Public */}
       <Route path="/" component={Home} />

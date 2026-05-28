@@ -58,8 +58,13 @@ import {
   createCustomQuestion,
   updateCustomQuestion,
   deleteCustomQuestion,
+  createPasswordResetToken,
+  getPasswordResetToken,
+  markResetTokenUsed,
+  updateUserPassword,
 } from "./db";
-import { sendSurveyInvitationEmail, sendReportEmail } from "./email";
+import { sendSurveyInvitationEmail, sendReportEmail, sendPasswordResetEmail } from "./email";
+import { generatePdfFromHtml, buildSurveyReportHtml } from "./pdf";
 
 // ─── Password helpers ─────────────────────────────────────────────────────────
 async function hashPassword(password: string): Promise<string> {
@@ -160,6 +165,36 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+
+    // Forgot password: generate reset token and send email
+    forgotPassword: publicProcedure
+      .input(z.object({ email: z.string().email(), origin: z.string().url() }))
+      .mutation(async ({ input }) => {
+        const { email, origin } = input;
+        // Always return success to prevent email enumeration
+        const user = await getUserByEmail(email);
+        if (!user) return { success: true };
+        const token = nanoid(48);
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        await createPasswordResetToken(user.id, token, expiresAt);
+        const resetUrl = `${origin}/reset-password?token=${token}`;
+        await sendPasswordResetEmail({ to: email, name: user.name ?? "", resetUrl });
+        return { success: true };
+      }),
+
+    // Reset password: verify token and update password hash
+    resetPassword: publicProcedure
+      .input(z.object({ token: z.string().min(1), password: z.string().min(8, "Password must be at least 8 characters") }))
+      .mutation(async ({ input }) => {
+        const record = await getPasswordResetToken(input.token);
+        if (!record) throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid or expired reset link" });
+        if (record.usedAt) throw new TRPCError({ code: "BAD_REQUEST", message: "This reset link has already been used" });
+        if (record.expiresAt < new Date()) throw new TRPCError({ code: "BAD_REQUEST", message: "This reset link has expired. Please request a new one." });
+        const hash = await hashPassword(input.password);
+        await updateUserPassword(record.userId, hash);
+        await markResetTokenUsed(record.id);
+        return { success: true };
+      }),
   }),
 
   // ─── Survey Forms (public definitions) ──────────────────────────────────────
@@ -457,10 +492,47 @@ export const appRouter = router({
           .map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(","))
           .join("\n");
 
-        return { csv, filename: `${survey.formKey}_responses.csv` };
+                return { csv, filename: `${survey.formKey}_responses.csv` };
+      }),
+
+    // PDF export — returns base64-encoded PDF
+    exportPdf: protectedProcedure
+      .input(z.object({ surveyId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        const survey = await getSurveyById(input.surveyId);
+        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+        const org = await getOrganizationById(survey.organizationId);
+        if (ctx.user.role !== "admin" && org?.ownerId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        const form = SURVEY_FORMS[survey.formKey];
+        if (!form) throw new TRPCError({ code: "NOT_FOUND" });
+        const responses = await getSurveyResponsesBySurvey(input.surveyId);
+        const completed = responses.filter((r) => r.status === "completed");
+        const completionRate = responses.length > 0 ? Math.round((completed.length / responses.length) * 100) : 0;
+        const allAnswers = await Promise.all(responses.map((r) => getAnswersByResponse(r.id)));
+        const flat = allAnswers.flat();
+        const questionInsights = form.questions.map((q) => {
+          const answers = flat.filter((a) => a.questionKey === q.key);
+          if (q.type === "open_ended") {
+            return { questionKey: q.key, questionText: q.text, questionType: q.type, totalAnswers: answers.length, openEndedResponses: answers.map((a) => String(a.value ?? "")) };
+          }
+          const counts: Record<string, number> = {};
+          for (const a of answers) {
+            const val = a.value;
+            if (Array.isArray(val)) { for (const v of val) counts[v] = (counts[v] ?? 0) + 1; }
+            else if (typeof val === "string") counts[val] = (counts[val] ?? 0) + 1;
+          }
+          const total = Object.values(counts).reduce((s, c) => s + c, 0);
+          const choiceBreakdown = (q.options ?? []).map((opt) => ({ option: opt.label, count: counts[opt.value] ?? 0, percentage: total > 0 ? Math.round(((counts[opt.value] ?? 0) / total) * 100) : 0 }));
+          return { questionKey: q.key, questionText: q.text, questionType: q.type, totalAnswers: answers.length, choiceBreakdown };
+        });
+        const html = buildSurveyReportHtml({ orgName: org?.name ?? "Organization", surveyTitle: survey.title, formKey: survey.formKey, generatedAt: new Date(), stats: { totalResponses: responses.length, completedResponses: completed.length, completionRate }, questionInsights });
+        const pdfBuffer = await generatePdfFromHtml(html);
+        const filename = `${org?.slug ?? "org"}-${survey.formKey}-report-${new Date().toISOString().slice(0, 10)}.pdf`;
+        return { pdf: pdfBuffer.toString("base64"), filename };
       }),
   }),
-
   // ─── Public Survey Submission ─────────────────────────────────────────────────
 
   public: router({

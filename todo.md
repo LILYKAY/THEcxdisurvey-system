@@ -98,3 +98,17 @@
 - [x] Implement org.resendInvitation procedure and wire to frontend
 - [x] Build frontend Custom Questions editor page for org owners
 - [x] Add Vitest tests for invitation send/list and report email procedures
+
+## Phase 11: PDF Reports, Forgot Password, Org-Select
+- [x] Server-side PDF generation for survey reports (server/pdf.ts with puppeteer-core)
+- [x] Update OrgReports download button to offer PDF format
+- [x] Update AdminSurveyInsights export to include PDF option
+- [x] Add password_reset_tokens table to schema and apply migration
+- [x] Build forgot-password backend: generate token, send reset email
+- [x] Build reset-password backend: validate token, update password
+- [x] Build /forgot-password frontend page
+- [x] Build /reset-password frontend page (reads ?token= from URL)
+- [x] Add "Forgot password?" link on Login page
+- [x] Build /org-select page listing all orgs for org_owner
+- [x] Redirect org_owner to /org-select after login (already in Login.tsx)
+- [x] Write tests for forgot/reset password procedures (26 tests passing)

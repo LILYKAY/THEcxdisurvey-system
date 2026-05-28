@@ -16,6 +16,7 @@ import {
   FileText,
   Loader2,
   Send,
+  FileDown,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 
@@ -32,7 +33,8 @@ export default function OrgReports() {
   const { user } = useAuth();
   const [emailInputs, setEmailInputs] = useState<Record<number, string>>({});
   const [sendingId, setSendingId] = useState<number | null>(null);
-  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [downloadingCsvId, setDownloadingCsvId] = useState<number | null>(null);
+  const [downloadingPdfId, setDownloadingPdfId] = useState<number | null>(null);
 
   const surveysQuery = trpc.surveys.listByOrg.useQuery({ organizationId });
   const orgQuery = trpc.organizations.get.useQuery({ id: organizationId });
@@ -49,12 +51,12 @@ export default function OrgReports() {
 
   const surveys = surveysQuery.data ?? [];
   const org = orgQuery.data;
+  const utils = trpc.useUtils();
 
   async function handleDownloadCsv(survey: (typeof surveys)[0]) {
-    setDownloadingId(survey.id);
+    setDownloadingCsvId(survey.id);
     try {
-      // Use the existing exportCsv procedure
-      const result = await trpc.useUtils().surveys.exportCsv.fetch({ surveyId: survey.id });
+      const result = await utils.surveys.exportCsv.fetch({ surveyId: survey.id });
       if (!result) throw new Error("No data");
       const blob = new Blob([result.csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
@@ -63,11 +65,35 @@ export default function OrgReports() {
       a.download = `${org?.slug ?? "org"}-${survey.formKey}-${new Date().toISOString().slice(0, 10)}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("Report downloaded");
+      toast.success("CSV report downloaded");
     } catch {
-      toast.error("Failed to download report");
+      toast.error("Failed to download CSV report");
     } finally {
-      setDownloadingId(null);
+      setDownloadingCsvId(null);
+    }
+  }
+
+  async function handleDownloadPdf(survey: (typeof surveys)[0]) {
+    setDownloadingPdfId(survey.id);
+    try {
+      const result = await utils.surveys.exportPdf.fetch({ surveyId: survey.id });
+      if (!result) throw new Error("No data");
+      // Decode base64 → binary → Blob
+      const binary = atob(result.pdf);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("PDF report downloaded");
+    } catch {
+      toast.error("Failed to generate PDF report");
+    } finally {
+      setDownloadingPdfId(null);
     }
   }
 
@@ -116,6 +142,8 @@ export default function OrgReports() {
             const completedResponses = (survey as { completedResponses?: number }).completedResponses ?? 0;
             const completionRate = totalResponses > 0 ? Math.round((completedResponses / totalResponses) * 100) : 0;
             const emailVal = emailInputs[survey.id] ?? user?.email ?? "";
+            const isCsvLoading = downloadingCsvId === survey.id;
+            const isPdfLoading = downloadingPdfId === survey.id;
 
             return (
               <Card key={survey.id} className="border shadow-sm overflow-hidden">
@@ -154,17 +182,17 @@ export default function OrgReports() {
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex flex-col sm:flex-row gap-3 pt-1">
+                  {/* Download actions row */}
+                  <div className="flex flex-col sm:flex-row gap-2 pt-1">
                     {/* CSV Download */}
                     <Button
                       variant="outline"
                       size="sm"
                       className="flex-1 sm:flex-none"
                       onClick={() => handleDownloadCsv(survey)}
-                      disabled={downloadingId === survey.id || totalResponses === 0}
+                      disabled={isCsvLoading || isPdfLoading || totalResponses === 0}
                     >
-                      {downloadingId === survey.id ? (
+                      {isCsvLoading ? (
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
                         <Download className="h-4 w-4 mr-2" />
@@ -172,34 +200,50 @@ export default function OrgReports() {
                       Download CSV
                     </Button>
 
-                    {/* Email report */}
-                    <div className="flex flex-1 gap-2">
-                      <div className="relative flex-1">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                        <Input
-                          type="email"
-                          placeholder={user?.email ?? "your@email.com"}
-                          value={emailVal}
-                          onChange={(e) =>
-                            setEmailInputs((prev) => ({ ...prev, [survey.id]: e.target.value }))
-                          }
-                          className="pl-8 h-9 text-sm"
-                        />
-                      </div>
-                      <Button
-                        size="sm"
-                        className="shrink-0"
-                        onClick={() => handleEmailReport(survey)}
-                        disabled={sendingId === survey.id || totalResponses === 0}
-                      >
-                        {sendingId === survey.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Send className="h-4 w-4" />
-                        )}
-                        <span className="ml-1.5 hidden sm:inline">Email Report</span>
-                      </Button>
+                    {/* PDF Download */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 sm:flex-none border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800"
+                      onClick={() => handleDownloadPdf(survey)}
+                      disabled={isCsvLoading || isPdfLoading || totalResponses === 0}
+                    >
+                      {isPdfLoading ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <FileDown className="h-4 w-4 mr-2" />
+                      )}
+                      Download PDF
+                    </Button>
+                  </div>
+
+                  {/* Email report row */}
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-1">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        type="email"
+                        placeholder={user?.email ?? "your@email.com"}
+                        value={emailVal}
+                        onChange={(e) =>
+                          setEmailInputs((prev) => ({ ...prev, [survey.id]: e.target.value }))
+                        }
+                        className="pl-8 h-9 text-sm"
+                      />
                     </div>
+                    <Button
+                      size="sm"
+                      className="shrink-0"
+                      onClick={() => handleEmailReport(survey)}
+                      disabled={sendingId === survey.id || totalResponses === 0}
+                    >
+                      {sendingId === survey.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                      <span className="ml-1.5 hidden sm:inline">Email Report</span>
+                    </Button>
                   </div>
 
                   {totalResponses === 0 && (

@@ -204,3 +204,19 @@ export const customQuestions = mysqlTable("custom_questions", {
 
 export type CustomQuestion = typeof customQuestions.$inferSelect;
 export type InsertCustomQuestion = typeof customQuestions.$inferInsert;
+
+// ─── Password Reset Tokens ────────────────────────────────────────────────────────────────────────────────
+// Stores short-lived tokens for the forgot-password email flow.
+// Tokens expire after 1 hour and can only be used once.
+
+export const passwordResetTokens = mysqlTable("password_reset_tokens", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  usedAt: timestamp("usedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;

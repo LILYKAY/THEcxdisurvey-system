@@ -13,9 +13,11 @@ import {
   InsertSurveyResponse,
   InsertUser,
   Organization,
+  PasswordResetToken,
   SurveyInvitation,
   customQuestions,
   organizations,
+  passwordResetTokens,
   respondents,
   responseAnswerHistory,
   responseAnswers,
@@ -69,6 +71,10 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     updateSet[field] = normalized;
   }
 
+  if (user.passwordHash !== undefined) {
+    values.passwordHash = user.passwordHash;
+    updateSet.passwordHash = user.passwordHash;
+  }
   if (user.lastSignedIn !== undefined) {
     values.lastSignedIn = user.lastSignedIn;
     updateSet.lastSignedIn = user.lastSignedIn;
@@ -743,4 +749,37 @@ export async function deleteCustomQuestion(id: number, organizationId: number) {
     .update(customQuestions)
     .set({ isActive: false })
     .where(and(eq(customQuestions.id, id), eq(customQuestions.organizationId, organizationId)));
+}
+
+// ─── Password Reset Tokens ────────────────────────────────────────────────────────────────────────────────
+export async function createPasswordResetToken(userId: number, token: string, expiresAt: Date): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(passwordResetTokens).values({ userId, token, expiresAt });
+}
+
+export async function getPasswordResetToken(token: string): Promise<PasswordResetToken | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db
+    .select()
+    .from(passwordResetTokens)
+    .where(eq(passwordResetTokens.token, token))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function markResetTokenUsed(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(passwordResetTokens)
+    .set({ usedAt: new Date() })
+    .where(eq(passwordResetTokens.id, id));
+}
+
+export async function updateUserPassword(userId: number, passwordHash: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
 }

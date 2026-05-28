@@ -4,6 +4,12 @@ import type { TrpcContext } from "./_core/context";
 
 // ─── Mock DB module ───────────────────────────────────────────────────────────
 
+vi.mock("./email", () => ({
+  sendPasswordResetEmail: vi.fn().mockResolvedValue(true),
+  sendSurveyInvitationEmail: vi.fn().mockResolvedValue(true),
+  sendReportEmail: vi.fn().mockResolvedValue(true),
+}));
+
 vi.mock("./db", () => ({
   upsertUser: vi.fn(),
   getUserByOpenId: vi.fn(),
@@ -54,6 +60,10 @@ vi.mock("./db", () => ({
   getInvitationBySurveyAndEmail: vi.fn(),
   updateInvitationStatus: vi.fn(),
   countUsers: vi.fn(),
+  getPasswordResetToken: vi.fn(),
+  createPasswordResetToken: vi.fn(),
+  markResetTokenUsed: vi.fn(),
+  updateUserPassword: vi.fn(),
 }));
 
 // ─── Context factories ────────────────────────────────────────────────────────
@@ -453,5 +463,130 @@ describe("org.emailReport", () => {
     await expect(
       caller.org.emailReport({ organizationId: 1, surveyId: 99 })
     ).rejects.toThrow();
+  });
+});
+
+describe("auth.forgotPassword", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns success even when email does not exist (prevents enumeration)", async () => {
+    vi.mocked(db.getUserByEmail).mockResolvedValue(undefined);
+    const ctx = makePublicCtx();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.auth.forgotPassword({
+      email: "nobody@example.com",
+      origin: "https://example.com",
+    });
+    expect(result.success).toBe(true);
+    // Should NOT create a token when user doesn't exist
+    expect(db.createPasswordResetToken).not.toHaveBeenCalled();
+  });
+
+  it("creates a reset token and sends email when user exists", async () => {
+    vi.mocked(db.getUserByEmail).mockResolvedValue({
+      id: 5,
+      openId: "user-5",
+      name: "Alice",
+      email: "alice@example.com",
+      loginMethod: "email",
+      passwordHash: "$2b$12$hash",
+      role: "user" as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    });
+    vi.mocked(db.createPasswordResetToken).mockResolvedValue(undefined);
+    const ctx = makePublicCtx();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.auth.forgotPassword({
+      email: "alice@example.com",
+      origin: "https://app.example.com",
+    });
+    expect(result.success).toBe(true);
+    expect(db.createPasswordResetToken).toHaveBeenCalledWith(
+      5,
+      expect.any(String),
+      expect.any(Date)
+    );
+  });
+
+  it("rejects invalid email format", async () => {
+    const ctx = makePublicCtx();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.auth.forgotPassword({ email: "not-an-email", origin: "https://example.com" })
+    ).rejects.toThrow();
+  });
+});
+
+describe("auth.resetPassword", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("rejects reset with invalid token", async () => {
+    vi.mocked(db.getPasswordResetToken).mockResolvedValue(null);
+    const ctx = makePublicCtx();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.auth.resetPassword({ token: "invalid-token", password: "newpassword123" })
+    ).rejects.toThrow();
+  });
+
+  it("rejects reset with password shorter than 8 characters", async () => {
+    const ctx = makePublicCtx();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.auth.resetPassword({ token: "some-token", password: "short" })
+    ).rejects.toThrow();
+  });
+
+  it("rejects already-used token", async () => {
+    vi.mocked(db.getPasswordResetToken).mockResolvedValue({
+      id: 1,
+      userId: 5,
+      token: "used-token",
+      expiresAt: new Date(Date.now() + 3600000),
+      usedAt: new Date(), // already used
+      createdAt: new Date(),
+    });
+    const ctx = makePublicCtx();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.auth.resetPassword({ token: "used-token", password: "newpassword123" })
+    ).rejects.toThrow();
+  });
+
+  it("rejects expired token", async () => {
+    vi.mocked(db.getPasswordResetToken).mockResolvedValue({
+      id: 2,
+      userId: 5,
+      token: "expired-token",
+      expiresAt: new Date(Date.now() - 1000), // expired
+      usedAt: null,
+      createdAt: new Date(),
+    });
+    const ctx = makePublicCtx();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.auth.resetPassword({ token: "expired-token", password: "newpassword123" })
+    ).rejects.toThrow();
+  });
+
+  it("updates password and marks token used on valid reset", async () => {
+    vi.mocked(db.getPasswordResetToken).mockResolvedValue({
+      id: 3,
+      userId: 5,
+      token: "valid-token",
+      expiresAt: new Date(Date.now() + 3600000),
+      usedAt: null,
+      createdAt: new Date(),
+    });
+    vi.mocked(db.updateUserPassword).mockResolvedValue(undefined);
+    vi.mocked(db.markResetTokenUsed).mockResolvedValue(undefined);
+    const ctx = makePublicCtx();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.auth.resetPassword({ token: "valid-token", password: "newpassword123" });
+    expect(result.success).toBe(true);
+    expect(db.updateUserPassword).toHaveBeenCalledWith(5, expect.any(String));
+    expect(db.markResetTokenUsed).toHaveBeenCalledWith(3);
   });
 });

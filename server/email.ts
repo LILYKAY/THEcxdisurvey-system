@@ -247,3 +247,92 @@ export async function sendReportEmail(params: SendReportParams): Promise<boolean
     return false;
   }
 }
+
+// ─── Password Reset Email ─────────────────────────────────────────────────────
+
+export async function sendPasswordResetEmail(params: {
+  to: string;
+  name: string;
+  resetUrl: string;
+}): Promise<boolean> {
+  const { to, name, resetUrl } = params;
+  const greeting = name ? `Hi ${name},` : "Hi there,";
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reset Your Password</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f0;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="background:#1e2d5a;padding:32px 40px;">
+              <p style="margin:0;color:#c9a84c;font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;">Password Reset</p>
+              <h1 style="margin:8px 0 0;color:#ffffff;font-size:24px;font-weight:700;line-height:1.3;">SurveyPro</h1>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:40px;">
+              <p style="margin:0 0 20px;color:#374151;font-size:16px;line-height:1.6;">${greeting}</p>
+              <p style="margin:0 0 20px;color:#374151;font-size:16px;line-height:1.6;">
+                We received a request to reset the password for your SurveyPro account.
+                Click the button below to set a new password. This link expires in <strong>1 hour</strong>.
+              </p>
+              <!-- CTA Button -->
+              <table cellpadding="0" cellspacing="0" style="margin:28px 0;">
+                <tr>
+                  <td style="background:#1e2d5a;border-radius:8px;">
+                    <a href="${resetUrl}" target="_blank"
+                       style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;letter-spacing:0.3px;">
+                      Reset Password &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">Or copy this link into your browser:</p>
+              <p style="margin:0 0 24px;color:#1e2d5a;font-size:12px;word-break:break-all;">${resetUrl}</p>
+              <p style="margin:0;color:#9ca3af;font-size:13px;line-height:1.6;">
+                If you did not request a password reset, you can safely ignore this email. Your password will not change.
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f9f7f2;padding:24px 40px;border-top:1px solid #e5e7eb;">
+              <p style="margin:0;color:#9ca3af;font-size:12px;">Powered by SurveyPro &mdash; Professional Survey Platform for Africa</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  try {
+    const resend = getResend();
+    const { error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to,
+      subject: "Reset your SurveyPro password",
+      html,
+      text: `${greeting}\n\nWe received a request to reset your SurveyPro password.\n\nClick the link below to set a new password (expires in 1 hour):\n${resetUrl}\n\nIf you did not request this, you can safely ignore this email.\n\nPowered by SurveyPro`,
+    });
+    if (error) {
+      console.error("[Email] Password reset error:", error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[Email] Failed to send password reset email:", err);
+    return false;
+  }
+}
