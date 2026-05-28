@@ -26,6 +26,7 @@ import OrgSettings from "./pages/org/OrgSettings";
 import OrgInvite from "./pages/org/OrgInvite";
 import OrgInvitations from "./pages/org/OrgInvitations";
 import OrgReports from "./pages/org/OrgReports";
+import OrgCustomQuestions from "./pages/org/OrgCustomQuestions";
 
 function Router() {
   return (
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/org/:orgId/invite" component={OrgInvite} />
       <Route path="/org/:orgId/invitations" component={OrgInvitations} />
       <Route path="/org/:orgId/reports" component={OrgReports} />
+      <Route path="/org/:orgId/surveys/:surveyId/questions" component={OrgCustomQuestions} />
 
       <Route component={NotFound} />
     </Switch>

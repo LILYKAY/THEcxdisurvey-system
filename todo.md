@@ -77,19 +77,24 @@
 - [x] Make DashboardShell sidebar responsive (collapsible on mobile)
 
 ## Phase 10: Email Invitations, Custom Questions & Reports
-- [ ] Install resend npm package
-- [ ] Add survey_invitations table to schema
-- [ ] Add custom_questions table to schema
-- [ ] Apply schema migration
-- [ ] Build server/email.ts helper using Resend
-- [ ] Build sendSurveyInvitation backend procedure
-- [ ] Build getInvitations and resendInvitation procedures
-- [ ] Build custom question management procedures
-- [ ] Build report generation (CSV + PDF per category)
-- [ ] Build emailReport procedure
-- [ ] Build frontend: Invite Customers page
-- [ ] Build frontend: Invitation tracking table
-- [ ] Build frontend: Custom Questions editor
-- [ ] Build frontend: Reports page with download and email buttons
-- [ ] Update survey-taking page to support invitation tokens
-- [ ] Write vitest tests for email invitation procedures
+- [x] Install resend npm package
+- [x] Add survey_invitations table to schema
+- [x] Add custom_questions table to schema
+- [x] Apply schema migration
+- [x] Build server/email.ts helper using Resend
+- [x] Build sendSurveyInvitation backend procedure
+- [x] Build getInvitations and resendInvitation procedures
+- [x] Build custom question management procedures
+- [x] Build report generation (CSV + PDF per category)
+- [x] Build emailReport procedure
+- [x] Build frontend: Invite Customers page
+- [x] Build frontend: Invitation tracking table
+- [x] Build frontend: Custom Questions editor
+- [x] Build frontend: Reports page with download and email buttons
+- [x] Update survey-taking page to support invitation tokens
+- [x] Write vitest tests for email invitation procedures
+
+## Phase 10 Gaps (to resolve)
+- [ ] Implement org.resendInvitation procedure and wire to frontend
+- [ ] Build frontend Custom Questions editor page for org owners
+- [ ] Add Vitest tests for invitation send/list and report email procedures

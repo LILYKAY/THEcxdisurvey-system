@@ -18,6 +18,7 @@ import {
   Copy,
   ExternalLink,
   Link2,
+  Settings2,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -182,6 +183,9 @@ export default function OrgDashboard() {
                   onViewInsights={() =>
                     navigate(`/org/${orgId}/surveys/${survey.id}/insights`)
                   }
+                  onCustomizeQuestions={() =>
+                    navigate(`/org/${orgId}/surveys/${survey.id}/questions`)
+                  }
                 />
               ))}
             </div>
@@ -196,10 +200,12 @@ function SurveyCard({
   survey,
   orgId,
   onViewInsights,
+  onCustomizeQuestions,
 }: {
   survey: { id: number; formKey: string; title: string; isActive: boolean };
   orgId: number;
   onViewInsights: () => void;
+  onCustomizeQuestions: () => void;
 }) {
   const { data: links } = trpc.surveys.getLinks.useQuery({ surveyId: survey.id });
   const utils = trpc.useUtils();
@@ -263,7 +269,7 @@ function SurveyCard({
           </Button>
         )}
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button
             size="sm"
             variant="outline"
@@ -272,6 +278,15 @@ function SurveyCard({
           >
             <BarChart3 className="h-3.5 w-3.5" />
             View Insights
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 text-xs"
+            onClick={onCustomizeQuestions}
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+            Customize
           </Button>
           {surveyUrl && (
             <Button

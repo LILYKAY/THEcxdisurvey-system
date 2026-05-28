@@ -814,6 +814,38 @@ export const appRouter = router({
         return getInvitationsByOrg(input.organizationId);
       }),
 
+    resendInvitation: orgOwnerProcedure
+      .input(z.object({ invitationId: z.number(), organizationId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        const invitations = await getInvitationsByOrg(input.organizationId);
+        const invitation = invitations.find((i) => i.id === input.invitationId);
+        if (!invitation) throw new TRPCError({ code: "NOT_FOUND", message: "Invitation not found" });
+        const survey = await getSurveyById(invitation.surveyId);
+        if (!survey) throw new TRPCError({ code: "NOT_FOUND", message: "Survey not found" });
+        const links = await getSurveyLinksBySurvey(invitation.surveyId);
+        const activeLink = links.find((l) => l.isActive);
+        if (!activeLink) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "No active survey link found" });
+        const origin = (ctx.req.headers["origin"] as string) || (ctx.req.headers["referer"] as string || "").replace(/\/[^/]*$/, "");
+        const surveyUrl = `${origin}/s/${activeLink.token}?invite=${invitation.inviteToken}`;
+        const sent = await sendSurveyInvitationEmail({
+          to: invitation.recipientEmail,
+          recipientName: invitation.recipientName,
+          organizationName: org.name,
+          surveyTitle: survey.title,
+          surveyUrl,
+          personalMessage: invitation.personalMessage ?? undefined,
+          senderName: ctx.user.name ?? ctx.user.email ?? "Survey Team",
+        });
+        if (!sent) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to resend invitation" });
+        await updateInvitationSentStatus(invitation.id);
+        return { success: true };
+      }),
+
     // ── Custom Questions ─────────────────────────────────────────────────────
 
     customQuestions: orgOwnerProcedure
