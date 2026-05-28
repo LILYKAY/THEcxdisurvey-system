@@ -509,13 +509,13 @@ export async function getResponseTrend(days: number = 30) {
 
   const rows = await db
     .select({
-      date: sql<string>`DATE(${surveyResponses.startedAt})`,
+      date: sql<string>`DATE(MIN(${surveyResponses.startedAt}))`,
       count: count(),
     })
     .from(surveyResponses)
     .where(gte(surveyResponses.startedAt, since))
     .groupBy(sql`DATE(${surveyResponses.startedAt})`)
-    .orderBy(sql`DATE(${surveyResponses.startedAt})`);
+    .orderBy(sql`DATE(MIN(${surveyResponses.startedAt}))`);
 
   return rows;
 }
@@ -585,7 +585,7 @@ export async function getOrgResponseTrend(organizationId: number, days: number =
 
   return db
     .select({
-      date: sql<string>`DATE(${surveyResponses.startedAt})`,
+      date: sql<string>`DATE(MIN(${surveyResponses.startedAt}))`,
       count: count(),
     })
     .from(surveyResponses)
@@ -596,5 +596,5 @@ export async function getOrgResponseTrend(organizationId: number, days: number =
       )
     )
     .groupBy(sql`DATE(${surveyResponses.startedAt})`)
-    .orderBy(sql`DATE(${surveyResponses.startedAt})`);
+    .orderBy(sql`DATE(MIN(${surveyResponses.startedAt}))`);
 }
