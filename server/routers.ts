@@ -48,7 +48,18 @@ import {
   upsertResponseAnswer,
   upsertUser,
   countUsers,
+  createSurveyInvitation,
+  getInvitationByToken,
+  getInvitationsByOrg,
+  updateInvitationStatus,
+  updateInvitationSentStatus,
+  markInvitationFailed,
+  getCustomQuestions,
+  createCustomQuestion,
+  updateCustomQuestion,
+  deleteCustomQuestion,
 } from "./db";
+import { sendSurveyInvitationEmail, sendReportEmail } from "./email";
 
 // ─── Password helpers ─────────────────────────────────────────────────────────
 async function hashPassword(password: string): Promise<string> {
@@ -455,7 +466,7 @@ export const appRouter = router({
   public: router({
     // Resolve a survey link token → return survey + form definition
     resolveSurveyLink: publicProcedure
-      .input(z.object({ token: z.string() }))
+      .input(z.object({ token: z.string(), inviteToken: z.string().optional() }))
       .query(async ({ input }) => {
         const link = await getSurveyLinkByToken(input.token);
         if (!link) throw new TRPCError({ code: "NOT_FOUND", message: "Survey link not found or expired" });
@@ -470,7 +481,42 @@ export const appRouter = router({
 
         const org = await getOrganizationById(survey.organizationId);
 
-        return { link, survey, form, organization: org };
+        // If an invite token is present, prefill respondent info and mark as opened
+        let invitation = null;
+        if (input.inviteToken) {
+          invitation = await getInvitationByToken(input.inviteToken);
+          if (invitation && invitation.status === "sent") {
+            await updateInvitationStatus(input.inviteToken, "opened", { openedAt: new Date() });
+          }
+        }
+
+        // Load org custom questions
+        const customQs = await getCustomQuestions(survey.id, survey.organizationId);
+
+        return {
+          link,
+          survey,
+          form,
+          organization: org,
+          invitation: invitation ? {
+            recipientName: invitation.recipientName,
+            recipientEmail: invitation.recipientEmail,
+            inviteToken: invitation.inviteToken,
+          } : null,
+          customQuestions: customQs,
+        };
+      }),
+
+    // Mark invitation as opened (called when respondent opens the survey page)
+    markInvitationOpened: publicProcedure
+      .input(z.object({ inviteToken: z.string() }))
+      .mutation(async ({ input }) => {
+        const invitation = await getInvitationByToken(input.inviteToken);
+        if (!invitation) return { success: false };
+        if (invitation.status === "sent") {
+          await updateInvitationStatus(input.inviteToken, "opened", { openedAt: new Date() });
+        }
+        return { success: true };
       }),
 
     // Start or resume a survey session
@@ -482,6 +528,7 @@ export const appRouter = router({
           email: z.string().email().optional(),
           company: z.string().optional(),
           country: z.string().optional(),
+          inviteToken: z.string().optional(),
         })
       )
       .mutation(async ({ input }) => {
@@ -516,7 +563,7 @@ export const appRouter = router({
           organizationId: survey.organizationId,
         });
 
-        return { responseId: response.id, respondentId: respondent.id };
+        return { responseId: response.id, respondentId: respondent.id, inviteToken: input.inviteToken };
       }),
 
     // Save answers (can be called multiple times — immutable history preserved)
@@ -531,6 +578,7 @@ export const appRouter = router({
             })
           ),
           complete: z.boolean().default(false),
+          inviteToken: z.string().optional(),
         })
       )
       .mutation(async ({ input }) => {
@@ -543,6 +591,10 @@ export const appRouter = router({
 
         if (input.complete) {
           await completeSurveyResponse(input.responseId);
+          // Mark any linked invitation as completed
+          if (input.inviteToken) {
+            await updateInvitationStatus(input.inviteToken, "completed", { completedAt: new Date() });
+          }
         }
 
         return { success: true };
@@ -675,6 +727,246 @@ export const appRouter = router({
           throw new TRPCError({ code: "FORBIDDEN" });
         }
         return getSurveyResponsesByOrg(input.organizationId);
+      }),
+
+    // ── Email Invitations ────────────────────────────────────────────────────
+
+    sendInvitations: orgOwnerProcedure
+      .input(
+        z.object({
+          organizationId: z.number(),
+          surveyId: z.number(),
+          recipients: z.array(
+            z.object({
+              email: z.string().email(),
+              name: z.string().optional(),
+            })
+          ),
+          personalMessage: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        const survey = await getSurveyById(input.surveyId);
+        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+
+        // Get or create the active survey link
+        const links = await getSurveyLinksBySurvey(input.surveyId);
+        const activeLink = links.find((l) => l.isActive);
+        if (!activeLink) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "No active survey link found" });
+
+        const results = await Promise.all(
+          input.recipients.map(async (recipient) => {
+            const inviteToken = nanoid(32);
+            const invitation = await createSurveyInvitation({
+              organizationId: input.organizationId,
+              surveyId: input.surveyId,
+              surveyLinkId: activeLink.id,
+              recipientEmail: recipient.email,
+              recipientName: recipient.name ?? null,
+              inviteToken,
+              status: "pending",
+              sentById: ctx.user.id,
+              personalMessage: input.personalMessage ?? null,
+            });
+
+            // Build the survey URL with the invite token
+            const baseUrl = ctx.req.headers.origin as string || "";
+            const surveyUrl = `${baseUrl}/s/${activeLink.token}?invite=${inviteToken}`;
+
+            const sent = await sendSurveyInvitationEmail({
+              to: recipient.email,
+              recipientName: recipient.name ?? null,
+              organizationName: org.name,
+              surveyTitle: survey.title,
+              surveyUrl,
+              personalMessage: input.personalMessage,
+              senderName: ctx.user.name ?? ctx.user.email ?? "Survey Team",
+            });
+
+            if (sent) {
+              await updateInvitationSentStatus(invitation.id);
+            } else {
+              await markInvitationFailed(invitation.id);
+            }
+
+            return { email: recipient.email, success: sent };
+          })
+        );
+
+        const sent = results.filter((r) => r.success).length;
+        const failed = results.filter((r) => !r.success).length;
+        return { sent, failed, results };
+      }),
+
+    invitations: orgOwnerProcedure
+      .input(z.object({ organizationId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        return getInvitationsByOrg(input.organizationId);
+      }),
+
+    // ── Custom Questions ─────────────────────────────────────────────────────
+
+    customQuestions: orgOwnerProcedure
+      .input(z.object({ surveyId: z.number(), organizationId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        return getCustomQuestions(input.surveyId, input.organizationId);
+      }),
+
+    addCustomQuestion: orgOwnerProcedure
+      .input(
+        z.object({
+          organizationId: z.number(),
+          surveyId: z.number(),
+          questionText: z.string().min(1),
+          questionType: z.enum(["open_ended", "multiple_choice", "single_choice", "checkboxes"]),
+          options: z.array(z.object({ value: z.string(), label: z.string() })).optional(),
+          isRequired: z.boolean().default(false),
+          sortOrder: z.number().default(0),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        const questionKey = `custom_${nanoid(8)}`;
+        return createCustomQuestion({
+          organizationId: input.organizationId,
+          surveyId: input.surveyId,
+          questionKey,
+          questionText: input.questionText,
+          questionType: input.questionType,
+          options: input.options ?? null,
+          isRequired: input.isRequired,
+          sortOrder: input.sortOrder,
+        });
+      }),
+
+    updateCustomQuestion: orgOwnerProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          organizationId: z.number(),
+          questionText: z.string().min(1).optional(),
+          questionType: z.enum(["open_ended", "multiple_choice", "single_choice", "checkboxes"]).optional(),
+          options: z.array(z.object({ value: z.string(), label: z.string() })).optional(),
+          isRequired: z.boolean().optional(),
+          sortOrder: z.number().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        const { id, organizationId, ...data } = input;
+        await updateCustomQuestion(id, organizationId, data);
+        return { success: true };
+      }),
+
+    deleteCustomQuestion: orgOwnerProcedure
+      .input(z.object({ id: z.number(), organizationId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        await deleteCustomQuestion(input.id, input.organizationId);
+        return { success: true };
+      }),
+
+    // ── Reports ──────────────────────────────────────────────────────────────
+
+    emailReport: orgOwnerProcedure
+      .input(
+        z.object({
+          organizationId: z.number(),
+          surveyId: z.number(),
+          toEmail: z.string().email(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        const survey = await getSurveyById(input.surveyId);
+        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+
+        const responses = await getSurveyResponsesBySurvey(input.surveyId);
+        const completed = responses.filter((r) => r.status === "completed");
+        const completionRate = responses.length > 0 ? Math.round((completed.length / responses.length) * 100) : 0;
+
+        // Build CSV
+        const rows = await Promise.all(
+          responses.map(async (r) => {
+            const answers = await getAnswersByResponse(r.id);
+            const respondent = await getRespondentById(r.respondentId);
+            const answerMap: Record<string, string> = {};
+            for (const a of answers) {
+              const v = a.value;
+              answerMap[a.questionKey] = Array.isArray(v) ? v.join("; ") : String(v ?? "");
+            }
+            return {
+              ResponseId: r.id,
+              Status: r.status,
+              StartedAt: r.startedAt?.toISOString() ?? "",
+              CompletedAt: r.completedAt?.toISOString() ?? "",
+              RespondentName: respondent?.name ?? "",
+              RespondentEmail: respondent?.email ?? "",
+              RespondentCompany: respondent?.company ?? "",
+              RespondentCountry: respondent?.country ?? "",
+              ...answerMap,
+            };
+          })
+        );
+
+        const allKeys = Array.from(new Set(rows.flatMap((r) => Object.keys(r))));
+        const csvLines = [
+          allKeys.join(","),
+          ...rows.map((r) =>
+            allKeys.map((k) => `"${String((r as Record<string, unknown>)[k] ?? "").replace(/"/g, '""')}"`).join(",")
+          ),
+        ];
+        const csvContent = csvLines.join("\n");
+        const csvFilename = `${org.slug}-${survey.formKey}-report-${new Date().toISOString().slice(0, 10)}.csv`;
+        const now = new Date();
+        const reportPeriod = `${new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString("en-US", { month: "long", year: "numeric" })}`;
+
+        const sent = await sendReportEmail({
+          to: input.toEmail,
+          recipientName: ctx.user.name ?? ctx.user.email ?? "Account Holder",
+          organizationName: org.name,
+          surveyTitle: survey.title,
+          reportPeriod,
+          totalResponses: responses.length,
+          completedResponses: completed.length,
+          completionRate,
+          csvContent,
+          csvFilename,
+        });
+
+        if (!sent) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to send report email" });
+        return { success: true };
       }),
   }),
 });

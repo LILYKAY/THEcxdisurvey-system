@@ -149,3 +149,58 @@ export const responseAnswerHistory = mysqlTable("response_answer_history", {
 
 export type ResponseAnswerHistory = typeof responseAnswerHistory.$inferSelect;
 export type InsertResponseAnswerHistory = typeof responseAnswerHistory.$inferInsert;
+
+// ─── Survey Invitations ───────────────────────────────────────────────────────
+// Tracks email invitations sent to customers. Each invitation has a unique
+// token that pre-fills the respondent info when the survey is opened.
+
+export const surveyInvitations = mysqlTable("survey_invitations", {
+  id: int("id").autoincrement().primaryKey(),
+  organizationId: int("organizationId").notNull(),
+  surveyId: int("surveyId").notNull(),
+  surveyLinkId: int("surveyLinkId").notNull(),
+  // Recipient info
+  recipientEmail: varchar("recipientEmail", { length: 320 }).notNull(),
+  recipientName: varchar("recipientName", { length: 255 }),
+  // Unique token embedded in the invitation link
+  inviteToken: varchar("inviteToken", { length: 64 }).notNull().unique(),
+  // Lifecycle
+  status: mysqlEnum("status", ["pending", "sent", "opened", "completed", "failed"]).default("pending").notNull(),
+  sentAt: timestamp("sentAt"),
+  openedAt: timestamp("openedAt"),
+  completedAt: timestamp("completedAt"),
+  // Link to the survey response once filled
+  surveyResponseId: int("surveyResponseId"),
+  // The user who sent the invitation
+  sentById: int("sentById").notNull(),
+  // Optional personal message
+  personalMessage: text("personalMessage"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SurveyInvitation = typeof surveyInvitations.$inferSelect;
+export type InsertSurveyInvitation = typeof surveyInvitations.$inferInsert;
+
+// ─── Custom Questions ─────────────────────────────────────────────────────────
+// Organization-specific question overrides for a survey.
+// These are appended after the standard questions when the survey is rendered.
+
+export const customQuestions = mysqlTable("custom_questions", {
+  id: int("id").autoincrement().primaryKey(),
+  organizationId: int("organizationId").notNull(),
+  surveyId: int("surveyId").notNull(),
+  questionKey: varchar("questionKey", { length: 100 }).notNull(),
+  questionText: text("questionText").notNull(),
+  questionType: mysqlEnum("questionType", ["open_ended", "multiple_choice", "single_choice", "checkboxes"]).notNull(),
+  // JSON array of {value, label} objects for choice questions
+  options: json("options"),
+  isRequired: boolean("isRequired").default(false).notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CustomQuestion = typeof customQuestions.$inferSelect;
+export type InsertCustomQuestion = typeof customQuestions.$inferInsert;

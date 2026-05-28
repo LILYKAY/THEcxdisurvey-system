@@ -75,3 +75,21 @@
 - [x] Make admin dashboard fully responsive
 - [x] Make survey-taking page fully responsive
 - [x] Make DashboardShell sidebar responsive (collapsible on mobile)
+
+## Phase 10: Email Invitations, Custom Questions & Reports
+- [ ] Install resend npm package
+- [ ] Add survey_invitations table to schema
+- [ ] Add custom_questions table to schema
+- [ ] Apply schema migration
+- [ ] Build server/email.ts helper using Resend
+- [ ] Build sendSurveyInvitation backend procedure
+- [ ] Build getInvitations and resendInvitation procedures
+- [ ] Build custom question management procedures
+- [ ] Build report generation (CSV + PDF per category)
+- [ ] Build emailReport procedure
+- [ ] Build frontend: Invite Customers page
+- [ ] Build frontend: Invitation tracking table
+- [ ] Build frontend: Custom Questions editor
+- [ ] Build frontend: Reports page with download and email buttons
+- [ ] Update survey-taking page to support invitation tokens
+- [ ] Write vitest tests for email invitation procedures

@@ -7,9 +7,12 @@ import {
   Building2,
   ChevronRight,
   ClipboardList,
+  FileText,
   LayoutDashboard,
   LogOut,
+  Mail,
   Menu,
+  Send,
   Settings,
   Users,
 } from "lucide-react";
@@ -217,7 +220,10 @@ export const ADMIN_NAV: NavItem[] = [
 export function getOrgNav(orgId: number | string): NavItem[] {
   return [
     { href: `/org/${orgId}`, label: "Overview", icon: LayoutDashboard },
+    { href: `/org/${orgId}/invite`, label: "Invite Customers", icon: Send },
+    { href: `/org/${orgId}/invitations`, label: "Invitations", icon: Mail },
     { href: `/org/${orgId}/respondents`, label: "Respondents", icon: Users },
+    { href: `/org/${orgId}/reports`, label: "Reports", icon: FileText },
     { href: `/org/${orgId}/settings`, label: "Settings", icon: Settings },
   ];
 }

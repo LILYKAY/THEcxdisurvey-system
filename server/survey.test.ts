@@ -43,6 +43,17 @@ vi.mock("./db", () => ({
   getOrgResponseTrend: vi.fn(),
   getUserByEmail: vi.fn(),
   getAllSurveysWithStats: vi.fn(),
+  getCustomQuestions: vi.fn(),
+  createCustomQuestion: vi.fn(),
+  updateCustomQuestion: vi.fn(),
+  deleteCustomQuestion: vi.fn(),
+  createSurveyInvitation: vi.fn(),
+  updateInvitationSentStatus: vi.fn(),
+  markInvitationFailed: vi.fn(),
+  getInvitationsByOrg: vi.fn(),
+  getInvitationBySurveyAndEmail: vi.fn(),
+  updateInvitationStatus: vi.fn(),
+  countUsers: vi.fn(),
 }));
 
 // ─── Context factories ────────────────────────────────────────────────────────
@@ -260,6 +271,7 @@ describe("public.resolveSurveyLink", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+    vi.mocked(db.getCustomQuestions).mockResolvedValue([]);
 
     const ctx = makePublicCtx();
     const caller = appRouter.createCaller(ctx);

@@ -207,6 +207,10 @@ function RespondentInfoStep({
 export default function SurveyPage() {
   const { token } = useParams<{ token: string }>();
   const [, navigate] = useLocation();
+  // Extract invite token from ?invite=xxx query param
+  const inviteToken = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("invite") ?? undefined
+    : undefined;
 
   const { data, isLoading, error } = trpc.public.resolveSurveyLink.useQuery({ token });
 
@@ -243,7 +247,7 @@ export default function SurveyPage() {
     company: string;
     country: string;
   }) => {
-    const result = await startResponse.mutateAsync({ token, ...info });
+    const result = await startResponse.mutateAsync({ token, ...info, inviteToken });
     setResponseId(result.responseId);
     setStep("survey");
   };
@@ -260,6 +264,7 @@ export default function SurveyPage() {
       responseId,
       answers: [{ questionKey: currentQuestion.key, value: currentAnswer }],
       complete: false,
+      inviteToken,
     });
     setCurrentQ((q) => q + 1);
   };
@@ -279,6 +284,7 @@ export default function SurveyPage() {
         responseId,
         answers: remaining,
         complete: true,
+        inviteToken,
       });
       navigate("/survey-complete");
     } finally {

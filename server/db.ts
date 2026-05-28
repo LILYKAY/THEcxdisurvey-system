@@ -2,18 +2,24 @@ import { and, count, desc, eq, gte, sql } from "drizzle-orm";
 import { type MySql2Database, drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import {
+  CustomQuestion,
+  InsertCustomQuestion,
   InsertOrganization,
   InsertRespondent,
   InsertResponseAnswer,
   InsertResponseAnswerHistory,
+  InsertSurveyInvitation,
   InsertSurveyLink,
   InsertSurveyResponse,
   InsertUser,
   Organization,
+  SurveyInvitation,
+  customQuestions,
   organizations,
   respondents,
   responseAnswerHistory,
   responseAnswers,
+  surveyInvitations,
   surveyLinks,
   surveyResponses,
   surveys,
@@ -597,4 +603,144 @@ export async function getOrgResponseTrend(organizationId: number, days: number =
     )
     .groupBy(sql`DATE(${surveyResponses.startedAt})`)
     .orderBy(sql`DATE(MIN(${surveyResponses.startedAt}))`);
+}
+
+// ─── Survey Invitations ───────────────────────────────────────────────────────
+
+export async function createSurveyInvitation(data: InsertSurveyInvitation): Promise<SurveyInvitation> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(surveyInvitations).values(data);
+  const [row] = await db
+    .select()
+    .from(surveyInvitations)
+    .where(eq(surveyInvitations.inviteToken, data.inviteToken!))
+    .limit(1);
+  return row!;
+}
+
+export async function getInvitationByToken(token: string): Promise<SurveyInvitation | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [row] = await db
+    .select()
+    .from(surveyInvitations)
+    .where(eq(surveyInvitations.inviteToken, token))
+    .limit(1);
+  return row;
+}
+
+export async function getInvitationsByOrg(organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: surveyInvitations.id,
+      recipientEmail: surveyInvitations.recipientEmail,
+      recipientName: surveyInvitations.recipientName,
+      status: surveyInvitations.status,
+      sentAt: surveyInvitations.sentAt,
+      openedAt: surveyInvitations.openedAt,
+      completedAt: surveyInvitations.completedAt,
+      inviteToken: surveyInvitations.inviteToken,
+      personalMessage: surveyInvitations.personalMessage,
+      surveyTitle: surveys.title,
+      formKey: surveys.formKey,
+      surveyId: surveyInvitations.surveyId,
+      createdAt: surveyInvitations.createdAt,
+    })
+    .from(surveyInvitations)
+    .innerJoin(surveys, eq(surveyInvitations.surveyId, surveys.id))
+    .where(eq(surveyInvitations.organizationId, organizationId))
+    .orderBy(desc(surveyInvitations.createdAt));
+}
+
+export async function updateInvitationStatus(
+  token: string,
+  status: SurveyInvitation["status"],
+  extra?: { openedAt?: Date; completedAt?: Date; surveyResponseId?: number }
+) {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(surveyInvitations)
+    .set({ status, ...extra })
+    .where(eq(surveyInvitations.inviteToken, token));
+}
+
+export async function updateInvitationSentStatus(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(surveyInvitations)
+    .set({ status: "sent", sentAt: new Date() })
+    .where(eq(surveyInvitations.id, id));
+}
+
+export async function markInvitationFailed(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(surveyInvitations)
+    .set({ status: "failed" })
+    .where(eq(surveyInvitations.id, id));
+}
+
+// ─── Custom Questions ─────────────────────────────────────────────────────────
+
+export async function getCustomQuestions(surveyId: number, organizationId: number): Promise<CustomQuestion[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(customQuestions)
+    .where(
+      and(
+        eq(customQuestions.surveyId, surveyId),
+        eq(customQuestions.organizationId, organizationId),
+        eq(customQuestions.isActive, true)
+      )
+    )
+    .orderBy(customQuestions.sortOrder);
+}
+
+export async function createCustomQuestion(data: InsertCustomQuestion): Promise<CustomQuestion> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(customQuestions).values(data);
+  const [row] = await db
+    .select()
+    .from(customQuestions)
+    .where(
+      and(
+        eq(customQuestions.surveyId, data.surveyId),
+        eq(customQuestions.organizationId, data.organizationId),
+        eq(customQuestions.questionKey, data.questionKey)
+      )
+    )
+    .limit(1);
+  return row!;
+}
+
+export async function updateCustomQuestion(
+  id: number,
+  organizationId: number,
+  data: Partial<InsertCustomQuestion>
+) {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(customQuestions)
+    .set(data)
+    .where(and(eq(customQuestions.id, id), eq(customQuestions.organizationId, organizationId)));
+}
+
+export async function deleteCustomQuestion(id: number, organizationId: number) {
+  const db = await getDb();
+  if (!db) return;
+  // Soft-delete: mark as inactive
+  await db
+    .update(customQuestions)
+    .set({ isActive: false })
+    .where(and(eq(customQuestions.id, id), eq(customQuestions.organizationId, organizationId)));
 }

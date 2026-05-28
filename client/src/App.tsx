@@ -23,6 +23,9 @@ import OrgRespondents from "./pages/org/OrgRespondents";
 import OrgRespondentDetail from "./pages/org/OrgRespondentDetail";
 import OrgSurveyInsights from "./pages/org/OrgSurveyInsights";
 import OrgSettings from "./pages/org/OrgSettings";
+import OrgInvite from "./pages/org/OrgInvite";
+import OrgInvitations from "./pages/org/OrgInvitations";
+import OrgReports from "./pages/org/OrgReports";
 
 function Router() {
   return (
@@ -51,6 +54,9 @@ function Router() {
       <Route path="/org/:orgId/respondents/:respondentId" component={OrgRespondentDetail} />
       <Route path="/org/:orgId/surveys/:surveyId/insights" component={OrgSurveyInsights} />
       <Route path="/org/:orgId/settings" component={OrgSettings} />
+      <Route path="/org/:orgId/invite" component={OrgInvite} />
+      <Route path="/org/:orgId/invitations" component={OrgInvitations} />
+      <Route path="/org/:orgId/reports" component={OrgReports} />
 
       <Route component={NotFound} />
     </Switch>
