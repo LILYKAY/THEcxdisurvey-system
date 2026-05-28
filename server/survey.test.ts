@@ -375,3 +375,83 @@ describe("auth.login", () => {
     ).rejects.toThrow();
   });
 });
+
+describe("org.invitations", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns invitations list for org owner", async () => {
+    vi.mocked(db.getOrganizationById).mockResolvedValue({
+      id: 1,
+      name: "Test Org",
+      slug: "test-org",
+      description: null,
+      industry: null,
+      country: null,
+      ownerId: 1,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(db.getInvitationsByOrg).mockResolvedValue([
+      {
+        id: 1,
+        organizationId: 1,
+        surveyId: 1,
+        recipientEmail: "customer@example.com",
+        recipientName: "Customer One",
+        personalMessage: null,
+        inviteToken: "tok123",
+        status: "sent",
+        sentAt: new Date(),
+        openedAt: null,
+        completedAt: null,
+        createdAt: new Date(),
+      },
+    ]);
+    const ctx = makeOrgOwnerCtx();
+    const caller = appRouter.createCaller(ctx);
+    const result = await caller.org.invitations({ organizationId: 1 });
+    expect(result).toHaveLength(1);
+    expect(result[0]?.recipientEmail).toBe("customer@example.com");
+    expect(result[0]?.status).toBe("sent");
+  });
+
+  it("rejects unauthenticated access to invitations", async () => {
+    const ctx = makePublicCtx();
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.org.invitations({ organizationId: 1 })).rejects.toThrow();
+  });
+});
+
+describe("org.emailReport", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("requires authentication", async () => {
+    const ctx = makePublicCtx();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.org.emailReport({ organizationId: 1, surveyId: 1 })
+    ).rejects.toThrow();
+  });
+
+  it("returns error when survey not found", async () => {
+    vi.mocked(db.getOrganizationById).mockResolvedValue({
+      id: 1,
+      name: "Test Org",
+      slug: "test-org",
+      description: null,
+      industry: null,
+      country: null,
+      ownerId: 1,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(db.getSurveyById).mockResolvedValue(undefined);
+    const ctx = makeOrgOwnerCtx();
+    const caller = appRouter.createCaller(ctx);
+    await expect(
+      caller.org.emailReport({ organizationId: 1, surveyId: 99 })
+    ).rejects.toThrow();
+  });
+});

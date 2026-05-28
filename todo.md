@@ -95,6 +95,6 @@
 - [x] Write vitest tests for email invitation procedures
 
 ## Phase 10 Gaps (to resolve)
-- [ ] Implement org.resendInvitation procedure and wire to frontend
-- [ ] Build frontend Custom Questions editor page for org owners
-- [ ] Add Vitest tests for invitation send/list and report email procedures
+- [x] Implement org.resendInvitation procedure and wire to frontend
+- [x] Build frontend Custom Questions editor page for org owners
+- [x] Add Vitest tests for invitation send/list and report email procedures
