@@ -207,3 +207,11 @@
 - [x] Seed Auditproo (org ID 1) email_branding with logo URL, primaryColor #03989e, secondaryColor #ffa500, signatureTag
 - [x] Remove "Number of Surveys" stat card from OrgDashboard
 - [x] Enhance OrgContacts bulk import: support paste-in email/phone list (one per line), CSV upload, preview table before saving
+
+## Phase 17: Audience–Contacts Integration
+- [x] OrgContacts: add row checkboxes and a selection toolbar (count + "Create Audience" button)
+- [x] OrgContacts: Create Audience dialog — name input, channel picker, confirm creates audience and adds selected contacts
+- [x] OrgContacts: "Add to Existing Audience" option from selection toolbar
+- [x] OrgAudiences: show contact count and list members per audience
+- [x] OrgAudiences: delete audience
+- [x] OrgAudiences: add contacts to existing audience from audience detail view
