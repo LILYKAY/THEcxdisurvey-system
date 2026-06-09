@@ -17,7 +17,7 @@ export default function AdminUsers() {
   return (
     <DashboardLayout navItems={navItems} title="Users" appName="CXDi Admin">
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Users</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Users</h1>
         {isLoading ? <div className="text-center text-gray-500 py-8">Loading...</div> : !users?.length ? (
           <Card><CardContent className="p-12 text-center"><Users className="w-12 h-12 text-gray-300 mx-auto mb-3" /><p className="text-gray-500">No users yet</p></CardContent></Card>
         ) : (

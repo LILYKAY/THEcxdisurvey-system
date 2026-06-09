@@ -63,9 +63,9 @@ export default function OrgSurveys() {
   return (
     <DashboardLayout navItems={navItems} title="Surveys">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Surveys</h1>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Surveys</h1>
             <p className="text-sm text-gray-500 mt-1">Build, send, and analyse your surveys</p>
           </div>
           <Dialog open={showCreate} onOpenChange={setShowCreate}>
@@ -124,26 +124,26 @@ export default function OrgSurveys() {
                       </div>
                       {s.description && <p className="text-sm text-gray-500 mt-0.5 truncate">{s.description}</p>}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/builder`)}>
-                        <Settings className="w-4 h-4 mr-1" /> Build
+                    <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                      <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/builder`)} className="h-8 px-2 sm:px-3">
+                        <Settings className="w-3.5 h-3.5 sm:mr-1" /><span className="hidden sm:inline">Build</span>
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/send`)}>
-                        <Send className="w-4 h-4 mr-1" /> Send
+                      <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/send`)} className="h-8 px-2 sm:px-3">
+                        <Send className="w-3.5 h-3.5 sm:mr-1" /><span className="hidden sm:inline">Send</span>
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/analytics`)}>
-                        <BarChart2 className="w-4 h-4 mr-1" /> Analytics
+                      <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/analytics`)} className="h-8 px-2 sm:px-3">
+                        <BarChart2 className="w-3.5 h-3.5 sm:mr-1" /><span className="hidden sm:inline">Analytics</span>
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/invitations`)}>
-                        <Mail className="w-4 h-4 mr-1" /> Invitations
+                      <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/invitations`)} className="h-8 px-2 sm:px-3">
+                        <Mail className="w-3.5 h-3.5 sm:mr-1" /><span className="hidden sm:inline">Invitations</span>
                       </Button>
                       {s.status === "active" ? (
-                        <Button variant="outline" size="sm" onClick={() => deactivateSurvey.mutate({ id: s.id })} className="text-yellow-600 border-yellow-300 hover:bg-yellow-50">
-                          Pause
+                        <Button variant="outline" size="sm" onClick={() => deactivateSurvey.mutate({ id: s.id })} className="h-8 px-2 sm:px-3 text-yellow-600 border-yellow-300 hover:bg-yellow-50">
+                          <span className="hidden sm:inline">Pause</span><span className="sm:hidden">⏸</span>
                         </Button>
                       ) : (
-                        <Button variant="outline" size="sm" onClick={() => activateSurvey.mutate({ id: s.id })} className="text-green-600 border-green-300 hover:bg-green-50">
-                          Activate
+                        <Button variant="outline" size="sm" onClick={() => activateSurvey.mutate({ id: s.id })} className="h-8 px-2 sm:px-3 text-green-600 border-green-300 hover:bg-green-50">
+                          <span className="hidden sm:inline">Activate</span><span className="sm:hidden">▶</span>
                         </Button>
                       )}
                     </div>

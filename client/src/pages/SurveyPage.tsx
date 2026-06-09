@@ -595,7 +595,7 @@ export default function SurveyPage() {
         </div>
       </header>
 
-      <div className="container max-w-2xl py-10">
+      <div className="container max-w-2xl py-6 sm:py-10 px-4 sm:px-6">
         {step === "done" && (
           <ThankYouScreen
             surveyTitle={data.survey.title}
@@ -619,12 +619,12 @@ export default function SurveyPage() {
 
             {currentQuestion && (
               <div key={currentQuestion.key} className="animate-fade-in">
-                <div className="mb-6 rounded-xl border border-border bg-card p-6 shadow-sm">
+                <div className="mb-6 rounded-xl border border-border bg-card p-4 sm:p-6 shadow-sm">
                   <div className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                     Question {currentQuestion.number}
                     {currentQuestion.required && <span className="ml-1 text-destructive">*</span>}
                   </div>
-                  <h2 className="mb-6 font-serif text-xl font-semibold leading-snug text-foreground">{currentQuestion.text}</h2>
+                  <h2 className="mb-5 font-serif text-lg sm:text-xl font-semibold leading-snug text-foreground">{currentQuestion.text}</h2>
                   <QuestionField question={currentQuestion} value={currentAnswer} onChange={handleAnswer} />
                 </div>
 
@@ -634,17 +634,17 @@ export default function SurveyPage() {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between">
-                  <Button variant="outline" onClick={handleBack} disabled={currentQ === 0} className="gap-2">
+                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <Button variant="outline" onClick={handleBack} disabled={currentQ === 0} className="gap-2 w-full sm:w-auto">
                     <ArrowLeft className="h-4 w-4" />Back
                   </Button>
                   {isLastQuestion ? (
-                    <Button onClick={handleSubmit} disabled={!canProceed || submitting} className="gap-2 px-8">
+                    <Button onClick={handleSubmit} disabled={!canProceed || submitting} className="gap-2 w-full sm:w-auto sm:px-8">
                       {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                       Submit Survey
                     </Button>
                   ) : (
-                    <Button onClick={handleNext} disabled={!canProceed || saveAnswer.isPending} className="gap-2">
+                    <Button onClick={handleNext} disabled={!canProceed || saveAnswer.isPending} className="gap-2 w-full sm:w-auto">
                       {saveAnswer.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                       Next<ArrowRight className="h-4 w-4" />
                     </Button>

@@ -213,11 +213,11 @@ export default function OrgSurveyInvitations() {
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50 text-left">
                       <th className="px-4 py-3 font-medium text-gray-600">Recipient</th>
-                      <th className="px-4 py-3 font-medium text-gray-600">Channel</th>
+                      <th className="px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">Channel</th>
                       <th className="px-4 py-3 font-medium text-gray-600">Status</th>
-                      <th className="px-4 py-3 font-medium text-gray-600">Sent</th>
-                      <th className="px-4 py-3 font-medium text-gray-600">Opened</th>
-                      <th className="px-4 py-3 font-medium text-gray-600">Completed</th>
+                      <th className="px-4 py-3 font-medium text-gray-600 hidden md:table-cell">Sent</th>
+                      <th className="px-4 py-3 font-medium text-gray-600 hidden lg:table-cell">Opened</th>
+                      <th className="px-4 py-3 font-medium text-gray-600 hidden lg:table-cell">Completed</th>
                       <th className="px-4 py-3 font-medium text-gray-600 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -241,7 +241,7 @@ export default function OrgSurveyInvitations() {
                               {inv.recipientEmail || "—"}
                             </div>
                           </td>
-                          <td className="px-4 py-3 capitalize text-gray-600">
+                          <td className="px-4 py-3 capitalize text-gray-600 hidden sm:table-cell">
                             {inv.channel ?? "email"}
                           </td>
                           <td className="px-4 py-3">
@@ -252,13 +252,13 @@ export default function OrgSurveyInvitations() {
                               {cfg.label}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                          <td className="px-4 py-3 text-gray-500 whitespace-nowrap hidden md:table-cell">
                             {formatDate(inv.sentAt)}
                           </td>
-                          <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                          <td className="px-4 py-3 text-gray-500 whitespace-nowrap hidden lg:table-cell">
                             {formatDate(inv.openedAt)}
                           </td>
-                          <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                          <td className="px-4 py-3 text-gray-500 whitespace-nowrap hidden lg:table-cell">
                             {formatDate(inv.completedAt)}
                           </td>
                           <td className="px-4 py-3 text-right">

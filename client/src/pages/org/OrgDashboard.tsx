@@ -30,15 +30,15 @@ export default function OrgDashboard() {
     <DashboardLayout navItems={navItems} title="Dashboard">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{org?.name ?? "Organisation Dashboard"}</h1>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">{org?.name ?? "Organisation Dashboard"}</h1>
             <p className="text-sm text-muted-foreground mt-1">
               {org?.industry ?? ""}{org?.country ? ` · ${org.country}` : ""}
             </p>
           </div>
-          <Button onClick={() => navigate(`/org/${orgId}/surveys`)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-            <Plus className="w-4 h-4 mr-2" /> New Survey
+          <Button onClick={() => navigate(`/org/${orgId}/surveys`)} className="bg-primary hover:bg-primary/90 text-primary-foreground shrink-0 gap-2">
+            <Plus className="w-4 h-4" /><span className="hidden sm:inline">New Survey</span>
           </Button>
         </div>
 

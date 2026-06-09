@@ -110,19 +110,19 @@ export default function OrgAudiences() {
     <DashboardLayout navItems={navItems} title="Audiences">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Audiences</h1>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Audiences</h1>
             <p className="text-sm text-muted-foreground mt-1">Group contacts for targeted survey distribution</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <Button variant="outline" asChild className="border-primary/30 text-primary hover:bg-primary/5">
-              <a href={`/org/${orgId}/contacts`}><UserPlus className="w-4 h-4 mr-2" /> Manage Contacts</a>
+              <a href={`/org/${orgId}/contacts`}><UserPlus className="w-4 h-4 mr-2" /><span className="hidden sm:inline">Manage Contacts</span><span className="sm:hidden">Contacts</span></a>
             </Button>
             <Dialog open={showCreate} onOpenChange={setShowCreate}>
               <DialogTrigger asChild>
                 <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                  <FolderPlus className="w-4 h-4 mr-2" /> New Audience
+                  <FolderPlus className="w-4 h-4 mr-2" /><span className="hidden sm:inline">New Audience</span><span className="sm:hidden">New</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -190,7 +190,7 @@ export default function OrgAudiences() {
                     <Dialog open={showAddContacts === a.id} onOpenChange={(open) => { setShowAddContacts(open ? a.id : null); setSelectedContactIds(new Set()); }}>
                       <DialogTrigger asChild>
                         <Button size="sm" variant="outline" className="border-primary/30 text-primary hover:bg-primary/5">
-                          <Plus className="w-3.5 h-3.5 mr-1" /> Add Contacts
+                          <Plus className="w-3.5 h-3.5 sm:mr-1" /><span className="hidden sm:inline">Add Contacts</span>
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-lg">

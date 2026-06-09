@@ -26,7 +26,7 @@ export default function AdminDashboard() {
   return (
     <DashboardLayout navItems={navItems} title="Admin" appName="CXDi Admin">
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Platform Overview</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Platform Overview</h1>
         {metricsError && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             Platform metrics are temporarily unavailable. The dashboard will retry automatically.

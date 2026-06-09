@@ -239,3 +239,15 @@
 - [x] Add updateSurveyExpiry helper to db.ts
 - [x] Add date-picker UI to Survey Builder settings panel (OrgSurveyBuilder.tsx)
 - [x] Show current expiry date and allow clearing it
+
+## Phase 21: Mobile Optimization & Bug Fixes
+
+- [x] Fix empty multiple-choice option labels in SurveyPage (options render as blank radio buttons)
+- [x] Remove "4 Pre-built survey forms" stat from Home.tsx landing page
+- [x] Mobile optimize SurveyPage (question cards, navigation buttons, progress bar)
+- [x] Mobile optimize DashboardLayout (sidebar, nav, header)
+- [x] Mobile optimize OrgSurveys, OrgSurveyBuilder, OrgSendSurvey pages
+- [x] Mobile optimize OrgContacts, OrgAudiences, OrgRespondents pages (responsive tables)
+- [x] Mobile optimize OrgDashboard and OrgAnalytics pages
+- [x] Mobile optimize admin pages (AdminDashboard, AdminUsers, AdminOrganizations)
+- [x] Mobile optimize Home.tsx landing page

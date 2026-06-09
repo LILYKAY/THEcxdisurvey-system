@@ -92,21 +92,32 @@ export default function OrgSendSurvey() {
   return (
     <DashboardLayout navItems={navItems} title="Send Survey">
       <div className="max-w-3xl mx-auto space-y-6">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${surveyId}/builder`)} className="text-gray-500">
+        <div className="flex items-start gap-3">
+          <Button variant="ghost" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${surveyId}/builder`)} className="text-gray-500 shrink-0">
             <ArrowLeft className="w-4 h-4 mr-1" /> Back
           </Button>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Send: {survey?.title}</h1>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">Send: {survey?.title}</h1>
             <p className="text-sm text-gray-500">Choose how to distribute this survey</p>
           </div>
         </div>
 
         <Tabs defaultValue="audience">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="audience"><Users className="w-4 h-4 mr-1" />Audience</TabsTrigger>
-            <TabsTrigger value="email"><Mail className="w-4 h-4 mr-1" />Single Email</TabsTrigger>
-            <TabsTrigger value="link"><Link2 className="w-4 h-4 mr-1" />Share Link</TabsTrigger>
+            <TabsTrigger value="audience" className="gap-1 text-xs sm:text-sm">
+              <Users className="w-4 h-4 shrink-0" />
+              <span className="hidden xs:inline">Audience</span>
+              <span className="xs:hidden">Group</span>
+            </TabsTrigger>
+            <TabsTrigger value="email" className="gap-1 text-xs sm:text-sm">
+              <Mail className="w-4 h-4 shrink-0" />
+              <span className="hidden xs:inline">Single Email</span>
+              <span className="xs:hidden">Email</span>
+            </TabsTrigger>
+            <TabsTrigger value="link" className="gap-1 text-xs sm:text-sm">
+              <Link2 className="w-4 h-4 shrink-0" />
+              <span>Link</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="audience">
@@ -193,13 +204,13 @@ export default function OrgSendSurvey() {
                   <Link2 className="w-4 h-4 mr-2" /> Generate New Link
                 </Button>
                 {links?.map((link) => (
-                  <div key={link.id} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                  <div key={link.id} className="flex flex-col gap-2 p-3 bg-gray-50 rounded-lg sm:flex-row sm:items-center">
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-500">{link.label ?? "Survey Link"}</p>
-                      <p className="text-sm font-mono truncate text-blue-600">{surveyBaseUrl}/survey/{link.token}</p>
+                      <p className="text-xs text-gray-500 mb-0.5">{link.label ?? "Survey Link"}</p>
+                      <p className="text-sm font-mono truncate text-blue-600 break-all">{surveyBaseUrl}/survey/{link.token}</p>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard.writeText(`${surveyBaseUrl}/survey/${link.token}`); toast.success("Link copied!"); }}>
-                      <Copy className="w-4 h-4" />
+                    <Button variant="outline" size="sm" className="shrink-0 gap-2 w-full sm:w-auto" onClick={() => { navigator.clipboard.writeText(`${surveyBaseUrl}/survey/${link.token}`); toast.success("Link copied!"); }}>
+                      <Copy className="w-4 h-4" /> Copy Link
                     </Button>
                   </div>
                 ))}

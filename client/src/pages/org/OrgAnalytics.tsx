@@ -34,12 +34,12 @@ export default function OrgAnalytics() {
   return (
     <DashboardLayout navItems={navItems} title="Analytics">
       <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/org/${orgId}/surveys`)} className="text-gray-500">
+        <div className="flex items-start gap-3">
+          <Button variant="ghost" size="sm" onClick={() => navigate(`/org/${orgId}/surveys`)} className="text-gray-500 shrink-0">
             <ArrowLeft className="w-4 h-4 mr-1" /> Back
           </Button>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">{survey?.title ?? "Analytics"}</h1>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">{survey?.title ?? "Analytics"}</h1>
             <p className="text-sm text-gray-500">Response analytics and insights</p>
           </div>
         </div>

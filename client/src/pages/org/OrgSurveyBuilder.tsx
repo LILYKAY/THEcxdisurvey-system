@@ -45,7 +45,10 @@ export default function OrgSurveyBuilder() {
   const [qText, setQText] = useState("");
   const [qType, setQType] = useState("open_ended");
   const [qRequired, setQRequired] = useState(true);
+  const [qOptions, setQOptions] = useState<string[]>(["Option 1", "Option 2"]);
   const [expiryOpen, setExpiryOpen] = useState(false);
+
+  const needsOptions = ["multiple_choice_single", "multiple_choice_multi"].includes(qType);
 
   const { data: survey } = trpc.surveys.get.useQuery({ id: surveyIdNum });
   const { data: questions, isLoading } = trpc.questions.list.useQuery({ surveyId: surveyIdNum });
@@ -83,8 +86,18 @@ export default function OrgSurveyBuilder() {
 
   const handleAddQuestion = () => {
     if (!qText.trim()) { toast.error("Question text is required"); return; }
+    if (needsOptions && qOptions.filter(o => o.trim()).length < 2) {
+      toast.error("Please add at least 2 options"); return;
+    }
     const key = `q_${Date.now()}`;
-    createQ.mutate({ surveyId: surveyIdNum, organizationId: orgIdNum, questionKey: key, questionText: qText, questionType: qType as any, isRequired: qRequired, sortOrder: (questions?.length ?? 0) + 1 });
+    const options = needsOptions
+      ? qOptions.filter(o => o.trim()).map((o, i) => ({ value: `opt_${i + 1}`, label: o.trim() }))
+      : undefined;
+    createQ.mutate({ surveyId: surveyIdNum, organizationId: orgIdNum, questionKey: key, questionText: qText, questionType: qType as any, isRequired: qRequired, sortOrder: (questions?.length ?? 0) + 1, options });
+  };
+
+  const resetDialog = () => {
+    setQText(""); setQType("open_ended"); setQRequired(true); setQOptions(["Option 1", "Option 2"]);
   };
 
   const navItems = [
@@ -96,16 +109,16 @@ export default function OrgSurveyBuilder() {
   return (
     <DashboardLayout navItems={navItems} title="Survey Builder">
       <div className="max-w-3xl mx-auto space-y-6">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/org/${orgId}/surveys`)} className="text-gray-500">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => navigate(`/org/${orgId}/surveys`)} className="text-gray-500 shrink-0">
             <ArrowLeft className="w-4 h-4 mr-1" /> Back
           </Button>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-gray-900">{survey?.title ?? "Survey Builder"}</h1>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">{survey?.title ?? "Survey Builder"}</h1>
             <p className="text-sm text-gray-500">{questions?.length ?? 0} questions</p>
           </div>
-          <Button onClick={() => navigate(`/org/${orgId}/surveys/${surveyId}/send`)} className="bg-blue-600 hover:bg-blue-700 text-white">
-            <Send className="w-4 h-4 mr-2" /> Send Survey
+          <Button onClick={() => navigate(`/org/${orgId}/surveys/${surveyId}/send`)} className="bg-blue-600 hover:bg-blue-700 text-white shrink-0 gap-2">
+            <Send className="w-4 h-4" /><span className="hidden sm:inline">Send Survey</span>
           </Button>
         </div>
 
@@ -205,7 +218,7 @@ export default function OrgSurveyBuilder() {
           </CardContent>
         </Card>
 
-        <Dialog open={showAdd} onOpenChange={setShowAdd}>
+        <Dialog open={showAdd} onOpenChange={(open) => { setShowAdd(open); if (!open) resetDialog(); }}>
           <DialogTrigger asChild>
             <Button variant="outline" className="w-full border-dashed border-2 border-gray-300 hover:border-blue-400 hover:text-blue-600 h-12">
               <Plus className="w-4 h-4 mr-2" /> Add Question
@@ -231,6 +244,49 @@ export default function OrgSurveyBuilder() {
                 <Label>Question Text</Label>
                 <Textarea value={qText} onChange={(e) => setQText(e.target.value)} placeholder="Enter your question..." rows={3} />
               </div>
+              {needsOptions && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Answer Options</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-blue-600 hover:text-blue-700 text-xs gap-1 h-auto py-1"
+                      onClick={() => setQOptions([...qOptions, ""])}
+                    >
+                      <Plus className="w-3 h-3" /> Add option
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {qOptions.map((opt, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <Input
+                          value={opt}
+                          onChange={(e) => {
+                            const updated = [...qOptions];
+                            updated[idx] = e.target.value;
+                            setQOptions(updated);
+                          }}
+                          placeholder={`Option ${idx + 1}`}
+                          className="flex-1"
+                        />
+                        {qOptions.length > 2 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-400 hover:text-red-600 hover:bg-red-50 h-9 w-9 p-0 shrink-0"
+                            onClick={() => setQOptions(qOptions.filter((_, i) => i !== idx))}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="required" checked={qRequired} onChange={(e) => setQRequired(e.target.checked)} className="rounded" />
                 <Label htmlFor="required">Required</Label>

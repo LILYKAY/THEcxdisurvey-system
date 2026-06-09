@@ -42,8 +42,8 @@ export default function AdminOrganizations() {
   return (
     <DashboardLayout navItems={navItems} title="Organisations" appName="CXDi Admin">
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Organisations</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Organisations</h1>
           <Dialog open={showCreate} onOpenChange={setShowCreate}>
             <DialogTrigger asChild>
               <Button className="bg-blue-600 hover:bg-blue-700 text-white"><Plus className="w-4 h-4 mr-2" />New Org</Button>
@@ -74,11 +74,15 @@ export default function AdminOrganizations() {
                     </div>
                     <p className="text-xs text-gray-500">{org.slug} {org.industry ? `· ${org.industry}` : ""} {org.country ? `· ${org.country}` : ""}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 shrink-0">
                     {org.isRestricted ? (
-                      <Button variant="outline" size="sm" onClick={() => restrictOrg.mutate({ orgId: org.id, isRestricted: false })} className="text-green-600 border-green-200 hover:bg-green-50"><Unlock className="w-3 h-3 mr-1" />Unrestrict</Button>
+                      <Button variant="outline" size="sm" onClick={() => restrictOrg.mutate({ orgId: org.id, isRestricted: false })} className="text-green-600 border-green-200 hover:bg-green-50">
+                        <Unlock className="w-3 h-3 sm:mr-1" /><span className="hidden sm:inline">Unrestrict</span>
+                      </Button>
                     ) : (
-                      <Button variant="outline" size="sm" onClick={() => restrictOrg.mutate({ orgId: org.id, isRestricted: true, reason: "Admin restriction" })} className="text-red-600 border-red-200 hover:bg-red-50"><Lock className="w-3 h-3 mr-1" />Restrict</Button>
+                      <Button variant="outline" size="sm" onClick={() => restrictOrg.mutate({ orgId: org.id, isRestricted: true, reason: "Admin restriction" })} className="text-red-600 border-red-200 hover:bg-red-50">
+                        <Lock className="w-3 h-3 sm:mr-1" /><span className="hidden sm:inline">Restrict</span>
+                      </Button>
                     )}
                   </div>
                 </CardContent>

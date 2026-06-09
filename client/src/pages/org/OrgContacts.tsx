@@ -183,9 +183,9 @@ export default function OrgContacts() {
     <DashboardLayout navItems={navItems} title="Contacts">
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Contacts</h1>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">Contacts</h1>
             <p className="text-sm text-muted-foreground mt-1">{contacts?.length ?? 0} / 1,500 contacts</p>
           </div>
           <div className="flex items-center gap-2">
@@ -410,6 +410,7 @@ export default function OrgContacts() {
                 </div>
               </div>
             ) : (
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -422,8 +423,8 @@ export default function OrgContacts() {
                     </TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Channel</TableHead>
+                    <TableHead className="hidden sm:table-cell">Phone</TableHead>
+                    <TableHead className="hidden sm:table-cell">Channel</TableHead>
                     <TableHead className="w-16"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -438,9 +439,9 @@ export default function OrgContacts() {
                         />
                       </TableCell>
                       <TableCell className="font-medium">{c.name ?? "—"}</TableCell>
-                      <TableCell>{c.email ?? "—"}</TableCell>
-                      <TableCell>{c.phone ?? "—"}</TableCell>
-                      <TableCell>
+                      <TableCell className="max-w-[160px] truncate">{c.email ?? "—"}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{c.phone ?? "—"}</TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <Badge variant="outline" className="capitalize text-primary border-primary/30">{c.preferredChannel ?? "email"}</Badge>
                       </TableCell>
                       <TableCell>
@@ -452,6 +453,7 @@ export default function OrgContacts() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>

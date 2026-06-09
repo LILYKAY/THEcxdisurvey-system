@@ -159,11 +159,11 @@ export default function Home() {
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               Built for Africa's growing business ecosystem
             </div>
-            <h1 className="mx-auto max-w-3xl text-5xl font-bold leading-tight tracking-tight text-foreground md:text-6xl">
+            <h1 className="mx-auto max-w-3xl text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl md:text-6xl">
               Collect customer insights with{" "}
               <span className="text-gradient">precision and trust</span>
             </h1>
-            <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
+            <p className="mx-auto mt-6 max-w-xl text-base text-muted-foreground sm:text-lg">
               A professional survey platform for businesses, organizations, and individuals
               across Africa. Every response is preserved, every insight is real-time.
             </p>
@@ -177,9 +177,8 @@ export default function Home() {
           </div>
 
           {/* Stats strip */}
-          <div className="mt-20 grid grid-cols-3 gap-8 border-t border-border pt-12 animate-fade-in">
+          <div className="mt-16 grid grid-cols-2 gap-6 border-t border-border pt-10 animate-fade-in sm:grid-cols-2">
             {[
-              { value: "4", label: "Pre-built survey forms" },
               { value: "100%", label: "Response data preserved" },
               { value: "Real-time", label: "Analytics & insights" },
             ].map((stat) => (

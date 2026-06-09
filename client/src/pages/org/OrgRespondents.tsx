@@ -22,7 +22,7 @@ export default function OrgRespondents() {
   return (
     <DashboardLayout navItems={navItems} title="Respondents">
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Respondents</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Respondents</h1>
         {isLoading ? (
           <div className="text-center text-gray-500 py-8">Loading...</div>
         ) : !responses?.length ? (
@@ -36,8 +36,8 @@ export default function OrgRespondents() {
           <div className="space-y-2">
             {responses.map((r: any) => (
               <Card key={r.id} className="hover:shadow-sm transition-shadow cursor-pointer" onClick={() => navigate(`/org/${orgId}/respondents/${r.id}`)}>
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <CardContent className="p-4 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={r.isComplete ? "default" : "outline"} className={r.isComplete ? "bg-green-100 text-green-700 border-green-200" : ""}>{r.isComplete ? "Complete" : "Partial"}</Badge>
                     {r.sentiment && <Badge variant="outline" className={`capitalize ${r.sentiment === "promoter" ? "text-green-600" : r.sentiment === "passive" ? "text-yellow-600" : "text-red-600"}`}>{r.sentiment}</Badge>}
                     {r.npsScore !== null && <span className="text-sm text-gray-600">NPS: <strong>{r.npsScore}</strong></span>}
