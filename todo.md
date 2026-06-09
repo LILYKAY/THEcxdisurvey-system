@@ -251,3 +251,11 @@
 - [x] Mobile optimize OrgDashboard and OrgAnalytics pages
 - [x] Mobile optimize admin pages (AdminDashboard, AdminUsers, AdminOrganizations)
 - [x] Mobile optimize Home.tsx landing page
+
+## Phase 22: Edit Question in Survey Builder
+
+- [x] Add updateQuestion helper to db.ts (update text, type, required, options)
+- [x] Add questions.update procedure to routers.ts
+- [x] Add Edit button to each question card in OrgSurveyBuilder
+- [x] Add Edit dialog with all question fields (text, type, required, options) to OrgSurveyBuilder
+- [x] Wire Edit dialog to questions.update mutation with optimistic update
