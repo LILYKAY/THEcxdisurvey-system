@@ -168,3 +168,14 @@
 - [x] Create Auditproo org with generated credentials
 - [x] Seed 3 surveys from research document (Partner, Audit Staff, Administrator)
 - [x] Share credentials with user
+
+## Phase 13: Email Branding Settings Page
+- [x] Logo upload via drag-and-drop area (S3 storage, 5 MB limit, PNG/JPG/SVG/WebP)
+- [x] Logo URL paste fallback
+- [x] Primary colour picker with presets and hex input
+- [x] Secondary / button colour picker with presets and hex input
+- [x] Email footer text (signature tag) field
+- [x] Platform branding toggle
+- [x] Live email preview panel (toggle show/hide)
+- [x] Save settings to email_branding table via branding.upsert procedure
+- [x] /api/upload/logo Express route with multer + S3 storagePut
