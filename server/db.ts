@@ -830,6 +830,12 @@ export async function getOrgOverviewMetrics(organizationId: number) {
     .from(surveyResponses)
     .where(and(eq(surveyResponses.organizationId, organizationId), eq(surveyResponses.isComplete, true)));
   const [orgSurveys] = await db.select({ count: count() }).from(surveys).where(eq(surveys.organizationId, organizationId));
+  const npsRows = await db
+    .select({ npsScore: surveyResponses.npsScore })
+    .from(surveyResponses)
+    .where(and(eq(surveyResponses.organizationId, organizationId), eq(surveyResponses.isComplete, true)));
+  const npsValues = npsRows.map((r) => r.npsScore).filter((v): v is number => v !== null && v !== undefined);
+  const avgNps = npsValues.length > 0 ? npsValues.reduce((a, b) => a + b, 0) / npsValues.length : null;
   return {
     totalRespondents: totalRespondents?.count ?? 0,
     totalResponses: totalResponses?.count ?? 0,
@@ -839,6 +845,7 @@ export async function getOrgOverviewMetrics(organizationId: number) {
       (totalResponses?.count ?? 0) > 0
         ? Math.round(((completedResponses?.count ?? 0) / (totalResponses?.count ?? 1)) * 100)
         : 0,
+    avgNps,
   };
 }
 

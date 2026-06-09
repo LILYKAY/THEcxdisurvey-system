@@ -6,53 +6,62 @@
 /* ─── Design Tokens ─────────────────────────────────────────────────────────── */
 
 @theme inline {
-  /* Neutral palette — warm off-white base */
-  --color-background: oklch(0.985 0.003 75);
-  --color-foreground: oklch(0.18 0.01 260);
+  /* ─── CXDi Brand Palette ──────────────────────────────────────────────────── */
+  /* #03989e → primary teal        */
+  /* #ffa500 → accent amber        */
+  /* #569894 → secondary teal-grey */
+  /* #116962 → dark teal           */
+  /* #eef7f6 → background light    */
+  /* #ddebea → muted surface       */
+  /* #e6f0ef → subtle surface      */
+
+  --color-background: oklch(0.974 0.012 185);   /* #eef7f6 */
+  --color-foreground: oklch(0.20 0.04 185);      /* near-black teal */
 
   --color-card: oklch(1 0 0);
-  --color-card-foreground: oklch(0.18 0.01 260);
+  --color-card-foreground: oklch(0.20 0.04 185);
 
   --color-popover: oklch(1 0 0);
-  --color-popover-foreground: oklch(0.18 0.01 260);
+  --color-popover-foreground: oklch(0.20 0.04 185);
 
-  /* Brand — deep indigo-slate */
-  --color-primary: oklch(0.32 0.12 265);
-  --color-primary-foreground: oklch(0.98 0.005 265);
+  /* Primary — #03989e */
+  --color-primary: oklch(0.60 0.11 192);         /* #03989e */
+  --color-primary-foreground: oklch(1 0 0);
 
-  /* Accent — warm amber gold */
-  --color-accent: oklch(0.78 0.14 75);
-  --color-accent-foreground: oklch(0.18 0.01 260);
+  /* Accent — #ffa500 */
+  --color-accent: oklch(0.78 0.17 70);           /* #ffa500 */
+  --color-accent-foreground: oklch(0.20 0.04 185);
 
-  --color-secondary: oklch(0.95 0.005 260);
-  --color-secondary-foreground: oklch(0.32 0.12 265);
+  /* Secondary — #569894 */
+  --color-secondary: oklch(0.90 0.018 185);      /* #ddebea */
+  --color-secondary-foreground: oklch(0.35 0.07 192);
 
-  --color-muted: oklch(0.95 0.005 260);
-  --color-muted-foreground: oklch(0.52 0.02 260);
+  --color-muted: oklch(0.92 0.015 185);          /* #e6f0ef */
+  --color-muted-foreground: oklch(0.50 0.05 185);
 
   --color-destructive: oklch(0.55 0.22 25);
   --color-destructive-foreground: oklch(0.98 0.005 25);
 
-  --color-border: oklch(0.9 0.005 260);
-  --color-input: oklch(0.9 0.005 260);
-  --color-ring: oklch(0.32 0.12 265);
+  --color-border: oklch(0.88 0.018 185);         /* slightly darker than muted */
+  --color-input: oklch(0.88 0.018 185);
+  --color-ring: oklch(0.60 0.11 192);            /* primary teal */
 
-  /* Chart colors */
-  --color-chart-1: oklch(0.32 0.12 265);
-  --color-chart-2: oklch(0.55 0.15 200);
-  --color-chart-3: oklch(0.78 0.14 75);
-  --color-chart-4: oklch(0.65 0.18 145);
-  --color-chart-5: oklch(0.60 0.20 30);
+  /* Chart colors — CXDi palette */
+  --color-chart-1: oklch(0.60 0.11 192);         /* #03989e primary */
+  --color-chart-2: oklch(0.78 0.17 70);          /* #ffa500 amber */
+  --color-chart-3: oklch(0.56 0.08 192);         /* #569894 secondary */
+  --color-chart-4: oklch(0.38 0.09 192);         /* #116962 dark */
+  --color-chart-5: oklch(0.65 0.13 160);         /* complementary green */
 
-  /* Sidebar */
-  --color-sidebar: oklch(0.22 0.04 265);
-  --color-sidebar-foreground: oklch(0.88 0.01 265);
-  --color-sidebar-primary: oklch(0.78 0.14 75);
-  --color-sidebar-primary-foreground: oklch(0.18 0.01 260);
-  --color-sidebar-accent: oklch(0.30 0.06 265);
-  --color-sidebar-accent-foreground: oklch(0.92 0.01 265);
-  --color-sidebar-border: oklch(0.30 0.04 265);
-  --color-sidebar-ring: oklch(0.78 0.14 75);
+  /* Sidebar — dark teal #116962 */
+  --color-sidebar: oklch(0.38 0.09 192);         /* #116962 */
+  --color-sidebar-foreground: oklch(0.95 0.01 185);
+  --color-sidebar-primary: oklch(0.78 0.17 70);  /* amber accent */
+  --color-sidebar-primary-foreground: oklch(0.20 0.04 185);
+  --color-sidebar-accent: oklch(0.44 0.08 192);  /* slightly lighter than sidebar */
+  --color-sidebar-accent-foreground: oklch(0.95 0.01 185);
+  --color-sidebar-border: oklch(0.44 0.07 192);
+  --color-sidebar-ring: oklch(0.78 0.17 70);
 
   /* Radius */
   --radius: 0.5rem;
@@ -65,25 +74,25 @@
 /* ─── Dark Mode ─────────────────────────────────────────────────────────────── */
 
 .dark {
-  --color-background: oklch(0.14 0.02 265);
-  --color-foreground: oklch(0.94 0.005 265);
-  --color-card: oklch(0.18 0.025 265);
-  --color-card-foreground: oklch(0.94 0.005 265);
-  --color-popover: oklch(0.18 0.025 265);
-  --color-popover-foreground: oklch(0.94 0.005 265);
-  --color-primary: oklch(0.72 0.12 265);
-  --color-primary-foreground: oklch(0.14 0.02 265);
-  --color-secondary: oklch(0.24 0.03 265);
-  --color-secondary-foreground: oklch(0.88 0.01 265);
-  --color-muted: oklch(0.24 0.03 265);
-  --color-muted-foreground: oklch(0.60 0.02 265);
-  --color-accent: oklch(0.78 0.14 75);
-  --color-accent-foreground: oklch(0.14 0.02 265);
+  --color-background: oklch(0.18 0.04 192);      /* dark teal bg */
+  --color-foreground: oklch(0.95 0.01 185);
+  --color-card: oklch(0.23 0.05 192);
+  --color-card-foreground: oklch(0.95 0.01 185);
+  --color-popover: oklch(0.23 0.05 192);
+  --color-popover-foreground: oklch(0.95 0.01 185);
+  --color-primary: oklch(0.68 0.11 192);         /* lighter teal for dark mode */
+  --color-primary-foreground: oklch(0.18 0.04 192);
+  --color-secondary: oklch(0.28 0.05 192);
+  --color-secondary-foreground: oklch(0.88 0.01 185);
+  --color-muted: oklch(0.28 0.05 192);
+  --color-muted-foreground: oklch(0.65 0.04 185);
+  --color-accent: oklch(0.78 0.17 70);           /* amber stays same */
+  --color-accent-foreground: oklch(0.18 0.04 192);
   --color-destructive: oklch(0.65 0.22 25);
   --color-destructive-foreground: oklch(0.98 0.005 25);
-  --color-border: oklch(0.26 0.03 265);
-  --color-input: oklch(0.26 0.03 265);
-  --color-ring: oklch(0.72 0.12 265);
+  --color-border: oklch(0.32 0.06 192);
+  --color-input: oklch(0.32 0.06 192);
+  --color-ring: oklch(0.68 0.11 192);
 }
 
 /* ─── Base Styles ───────────────────────────────────────────────────────────── */
@@ -138,9 +147,9 @@
       0 0 0 1px oklch(0.18 0.01 260 / 0.04);
   }
 
-  /* Gradient text */
+  /* Gradient text — CXDi teal */
   .text-gradient {
-    background: linear-gradient(135deg, oklch(0.32 0.12 265), oklch(0.55 0.15 200));
+    background: linear-gradient(135deg, oklch(0.60 0.11 192), oklch(0.78 0.17 70));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

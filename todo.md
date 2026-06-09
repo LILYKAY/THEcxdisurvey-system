@@ -200,3 +200,10 @@
 - [x] Frontend: mandatory question validation before advancing
 - [x] Frontend: thank-you screen after submit with org branding
 - [x] Frontend: handle already-completed token (show "already submitted" message)
+
+## Phase 16: Brand Colours, Auditproo Branding, Dashboard Cleanup, Bulk Contacts
+- [x] Upload CXDi logo (CXDIlogo.jpg) to S3 via manus-upload-file --webdev
+- [x] Update index.css CSS variables with CXDi palette: primary #03989e, accent #ffa500, secondary #569894, dark #116962, bg-light #eef7f6, bg-muted #ddebea, bg-subtle #e6f0ef
+- [x] Seed Auditproo (org ID 1) email_branding with logo URL, primaryColor #03989e, secondaryColor #ffa500, signatureTag
+- [x] Remove "Number of Surveys" stat card from OrgDashboard
+- [x] Enhance OrgContacts bulk import: support paste-in email/phone list (one per line), CSV upload, preview table before saving
