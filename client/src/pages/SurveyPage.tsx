@@ -377,9 +377,10 @@ function QuestionField({ question, value, onChange }: {
 
 
 // ─── Thank You Screen ─────────────────────────────────────────────────────────
-function ThankYouScreen({ surveyTitle, branding, alreadyDone }: {
+function ThankYouScreen({ surveyTitle, branding, closingMessage, alreadyDone }: {
   surveyTitle: string;
   branding?: { logoUrl?: string | null; primaryColor?: string | null; signatureTag?: string | null } | null;
+  closingMessage?: string | null;
   alreadyDone?: boolean;
 }) {
   const primary = branding?.primaryColor ?? "#0d9488";
@@ -391,14 +392,16 @@ function ThankYouScreen({ surveyTitle, branding, alreadyDone }: {
       <div className="flex h-20 w-20 items-center justify-center rounded-full" style={{ backgroundColor: `${primary}20` }}>
         <CheckCircle2 className="h-10 w-10" style={{ color: primary }} />
       </div>
-      <div className="space-y-2">
+      <div className="space-y-2 max-w-md">
         <h1 className="font-serif text-3xl font-bold text-foreground">
           {alreadyDone ? "Already Submitted" : "Thank You!"}
         </h1>
         <p className="text-muted-foreground max-w-sm leading-relaxed">
           {alreadyDone
             ? "You have already submitted a response to this survey. Each invitation link can only be used once."
-            : <>Your response to <span className="font-medium text-foreground">{surveyTitle}</span> has been recorded. We appreciate you taking the time to share your feedback.</>}
+            : closingMessage
+              ? closingMessage
+              : <>Your response to <span className="font-medium text-foreground">{surveyTitle}</span> has been recorded. We appreciate you taking the time to share your feedback.</>}
         </p>
       </div>
       {branding?.signatureTag && (
@@ -553,6 +556,7 @@ export default function SurveyPage() {
           <ThankYouScreen
             surveyTitle={data.survey.title}
             branding={data.branding}
+            closingMessage={(data.survey as any).closingMessage}
           />
         )}
         {(step === "already_done" || alreadyCompleted) && (

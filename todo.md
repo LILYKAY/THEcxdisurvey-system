@@ -215,3 +215,11 @@
 - [x] OrgAudiences: show contact count and list members per audience
 - [x] OrgAudiences: delete audience
 - [x] OrgAudiences: add contacts to existing audience from audience detail view
+
+## Phase 18: Auditproo Research Pack Surveys (Version 2.0)
+
+- [ ] Delete existing 3 placeholder Auditproo surveys and all their questions
+- [ ] Seed Tool 1: Partner Questionnaire (7 questions, opening/closing messages, branching on Q5)
+- [ ] Seed Tool 2: Audit Staff Questionnaire (6 questions, opening/closing messages)
+- [ ] Seed Tool 3: Administrator Questionnaire (5 questions, opening/closing messages)
+- [ ] Verify all surveys, questions, types, and options are correct in the database
