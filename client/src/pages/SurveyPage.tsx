@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
@@ -14,7 +13,7 @@ import {
   Loader2,
   Star,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "wouter";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -324,36 +323,6 @@ function QuestionField({ question, value, onChange }: {
   return null;
 }
 
-// ─── Respondent Info Form ─────────────────────────────────────────────────────
-function RespondentInfoStep({ onStart, loading }: {
-  onStart: (info: { name: string; email: string }) => void;
-  loading: boolean;
-}) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  return (
-    <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label htmlFor="name">Full Name</Label>
-          <Input id="name" placeholder="Jane Doe" value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="email">Email Address <span className="text-muted-foreground text-xs">(optional)</span></Label>
-          <Input id="email" type="email" placeholder="jane@firm.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground leading-relaxed">
-        Your responses are confidential and will only be used to improve our services.
-      </p>
-      <Button className="w-full" size="lg" disabled={!name.trim() || loading} onClick={() => onStart({ name, email })}>
-        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-        Begin Survey
-        <ArrowRight className="ml-2 h-4 w-4" />
-      </Button>
-    </div>
-  );
-}
 
 // ─── Thank You Screen ─────────────────────────────────────────────────────────
 function ThankYouScreen({ surveyTitle, branding, alreadyDone }: {
@@ -401,7 +370,7 @@ export default function SurveyPage() {
   const completeResponse = trpc.public.completeResponse.useMutation();
 
   const [responseId, setResponseId] = useState<number | null>(null);
-  const [step, setStep] = useState<"info" | "survey" | "done" | "already_done">("info");
+  const [step, setStep] = useState<"survey" | "done" | "already_done">("survey");
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -409,6 +378,15 @@ export default function SurveyPage() {
 
   // Show already-completed screen immediately if invitation was already used
   const alreadyCompleted = data?.alreadyCompleted ?? false;
+
+  // Auto-start response as soon as survey data loads (no intro screen)
+  useEffect(() => {
+    if (!data || alreadyCompleted || responseId) return;
+    startResponse.mutateAsync({ token: token ?? "" })
+      .then((result) => setResponseId(result.responseId))
+      .catch((e) => console.error("startResponse error:", e));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!data, alreadyCompleted]);
 
   const questions: SurveyQuestion[] = useMemo(() => {
     if (!data?.questions) return [];
@@ -439,21 +417,6 @@ export default function SurveyPage() {
     if (Array.isArray(val)) return val.length > 0;
     return false;
   }, [currentQuestion, answers]);
-
-  const handleStart = async (info: { name: string; email: string }) => {
-    if (alreadyCompleted) { setStep("already_done"); return; }
-    try {
-      const result = await startResponse.mutateAsync({
-        token: token ?? "",
-        respondentName: info.name || undefined,
-        respondentEmail: info.email || undefined,
-      });
-      setResponseId(result.responseId);
-      setStep("survey");
-    } catch (e: any) {
-      console.error("startResponse error:", e);
-    }
-  };
 
   const handleAnswer = (val: unknown) => {
     if (!currentQuestion) return;
@@ -535,37 +498,17 @@ export default function SurveyPage() {
       </header>
 
       <div className="container max-w-2xl py-10">
-        {(step === "done" || (step === "info" && alreadyCompleted)) && (
+        {step === "done" && (
           <ThankYouScreen
             surveyTitle={data.survey.title}
             branding={data.branding}
-            alreadyDone={step === "info" && alreadyCompleted}
           />
         )}
-        {step === "already_done" && (
+        {(step === "already_done" || alreadyCompleted) && (
           <ThankYouScreen surveyTitle={data.survey.title} branding={data.branding} alreadyDone />
         )}
 
-        {step === "info" && !alreadyCompleted && (
-          <div className="animate-fade-in">
-            <div className="mb-8">
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">Survey</div>
-              <h1 className="font-serif text-3xl font-bold text-foreground">{data.survey.title}</h1>
-              {data.survey.description && (
-                <p className="mt-3 text-muted-foreground leading-relaxed">{data.survey.description}</p>
-              )}
-              <p className="mt-2 text-sm text-muted-foreground">
-                {totalQ} question{totalQ !== 1 ? "s" : ""} &middot; Takes about {Math.max(1, Math.ceil(totalQ * 0.5))} min
-              </p>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-              <h2 className="mb-5 font-semibold text-foreground">Before we begin, please tell us a bit about yourself</h2>
-              <RespondentInfoStep onStart={handleStart} loading={startResponse.isPending} />
-            </div>
-          </div>
-        )}
-
-        {step === "survey" && (
+        {step === "survey" && !alreadyCompleted && (
           <div className="animate-fade-in">
             <div className="mb-8">
               <div className="mb-2 flex items-center justify-between text-sm">
