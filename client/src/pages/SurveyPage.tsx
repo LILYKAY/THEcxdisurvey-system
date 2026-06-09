@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,57 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "wouter";
+
+// ─── Survey Skeleton ──────────────────────────────────────────────────────────
+function SurveySkeleton() {
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header skeleton */}
+      <header className="border-b border-border bg-card/80 sticky top-0 z-10">
+        <div className="container flex h-14 items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-7 w-7 rounded" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+          <Skeleton className="hidden sm:block h-4 w-40" />
+        </div>
+      </header>
+      <div className="container max-w-2xl py-10">
+        {/* Progress bar skeleton */}
+        <div className="mb-8 space-y-2">
+          <div className="flex justify-between">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+          <Skeleton className="h-1.5 w-full rounded-full" />
+        </div>
+        {/* Question card skeleton */}
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-6 animate-pulse">
+          <div className="space-y-3">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-6 w-3/4" />
+            <Skeleton className="h-5 w-1/2" />
+          </div>
+          {/* Answer area skeleton – mimics NPS grid */}
+          <div className="flex flex-wrap gap-2 justify-center">
+            {Array.from({ length: 11 }).map((_, i) => (
+              <Skeleton key={i} className="h-11 w-11 rounded-lg" />
+            ))}
+          </div>
+          <div className="flex justify-between">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        </div>
+        {/* Navigation buttons skeleton */}
+        <div className="mt-6 flex items-center justify-between">
+          <Skeleton className="h-9 w-20 rounded-md" />
+          <Skeleton className="h-9 w-24 rounded-md" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type QuestionType =
@@ -459,12 +511,11 @@ export default function SurveyPage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+  // Show skeleton while fetching survey data OR while auto-starting the response
+  const isInitializing = isLoading || (!!data && !alreadyCompleted && !responseId && startResponse.isPending);
+
+  if (isInitializing) {
+    return <SurveySkeleton />;
   }
 
   if (error || !data) {
