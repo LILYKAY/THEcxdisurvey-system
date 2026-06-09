@@ -179,3 +179,9 @@
 - [x] Live email preview panel (toggle show/hide)
 - [x] Save settings to email_branding table via branding.upsert procedure
 - [x] /api/upload/logo Express route with multer + S3 storagePut
+
+## Phase 14: Wire Email Branding into Invitation Emails
+- [x] Read email_branding record for the org in the send-survey procedure
+- [x] Pass branding (logoUrl, primaryColor, secondaryColor, signatureTag, usePlatformBranding) into the email HTML template builder
+- [x] Update email HTML template to use dynamic logo, header colour, button colour, and footer text
+- [x] Fallback gracefully when no branding is saved (use CXDi defaults)
