@@ -185,3 +185,18 @@
 - [x] Pass branding (logoUrl, primaryColor, secondaryColor, signatureTag, usePlatformBranding) into the email HTML template builder
 - [x] Update email HTML template to use dynamic logo, header colour, button colour, and footer text
 - [x] Fallback gracefully when no branding is saved (use CXDi defaults)
+
+## Phase 15: Public Survey Response Submission
+- [x] Backend: createOrGetRespondent helper in db.ts
+- [x] Backend: createSurveyResponse helper in db.ts
+- [x] Backend: upsertResponseAnswer helper in db.ts (save per-question answer)
+- [x] Backend: submitSurveyResponse procedure (mark isComplete, compute NPS/CSAT/CES scores, update invitation status)
+- [x] Backend: public.startResponse procedure (create response row, return responseId)
+- [x] Backend: public.saveAnswer procedure (upsert single answer)
+- [x] Backend: public.submitResponse procedure (finalize)
+- [x] Frontend: rebuild SurveyPage with question-by-question flow (one question per screen)
+- [x] Frontend: render all 12 question types (NPS, CSAT, CES-5, CES-7, open_ended, multiple_choice_single, multiple_choice_multi, yes_no, range_0_10, number_input, year, date)
+- [x] Frontend: progress bar and back/next navigation
+- [x] Frontend: mandatory question validation before advancing
+- [x] Frontend: thank-you screen after submit with org branding
+- [x] Frontend: handle already-completed token (show "already submitted" message)

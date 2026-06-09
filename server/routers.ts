@@ -576,14 +576,17 @@ export const appRouter = router({
         const survey = await getSurveyById(link.surveyId);
         if (!survey || survey.status !== "active") throw new TRPCError({ code: "NOT_FOUND" });
         const questions = await getSurveyQuestions(survey.id);
-        return { survey, questions, type: "link" as const };
+        const branding = await getEmailBranding(survey.organizationId);
+        return { survey, questions, type: "link" as const, alreadyCompleted: false, branding };
       }
       const inv = await getInvitationByToken(input.token);
       if (inv) {
         const survey = await getSurveyById(inv.surveyId);
         if (!survey || survey.status !== "active") throw new TRPCError({ code: "NOT_FOUND" });
         const questions = await getSurveyQuestions(survey.id);
-        return { survey, questions, type: "invitation" as const };
+        const branding = await getEmailBranding(survey.organizationId);
+        const alreadyCompleted = inv.status === "completed";
+        return { survey, questions, type: "invitation" as const, alreadyCompleted, branding };
       }
       throw new TRPCError({ code: "NOT_FOUND", message: "Survey not found or link is inactive" });
     }),
