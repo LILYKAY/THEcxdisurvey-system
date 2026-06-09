@@ -42,6 +42,7 @@ import {
   getEmailBranding,
   getInvitationByToken,
   getInvitationsByOrg,
+  getInvitationsBySurvey,
   getMfaSettings,
   getOrganizationById,
   getOrganizationsByOwner,
@@ -275,6 +276,12 @@ export const appRouter = router({
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
       if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
       return getInvitationsByOrg(input.organizationId);
+    }),
+    surveyInvitations: protectedProcedure.input(z.object({ organizationId: z.number(), surveyId: z.number() })).query(async ({ input, ctx }) => {
+      const org = await getOrganizationById(input.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return getInvitationsBySurvey(input.organizationId, input.surveyId);
     }),
   }),
 
@@ -599,6 +606,10 @@ export const appRouter = router({
         if (!surveyId) throw new TRPCError({ code: "NOT_FOUND" });
         const survey = await getSurveyById(surveyId);
         if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+        // Reject if the survey has passed its expiry date
+        if (survey.expiresAt && new Date(survey.expiresAt) < new Date()) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "This survey has closed and is no longer accepting responses." });
+        }
         let respondentId: number | undefined;
         if (!survey.isAnonymous && (input.respondentEmail || input.respondentName)) {
           const r = await createRespondent({ organizationId: survey.organizationId, name: input.respondentName, email: input.respondentEmail });

@@ -223,3 +223,12 @@
 - [x] Seed Tool 2: Audit Staff Questionnaire (6 questions, opening/closing messages)
 - [x] Seed Tool 3: Administrator Questionnaire (5 questions, opening/closing messages)
 - [x] Verify all surveys, questions, types, and options are correct in the database
+
+## Phase 19: Bug Fixes & Remaining Features
+
+- [x] Fix admin.overviewMetrics 504 timeout: add staleTime/retry/refetchOnWindowFocus options to AdminDashboard query
+- [x] Fix admin.overviewMetrics 504 timeout: run 5 COUNT queries in parallel (Promise.all) in db.ts instead of sequentially
+- [x] Fix admin.overviewMetrics 504 timeout: add graceful "metrics unavailable" fallback UI in AdminDashboard
+- [x] Add survey expiry check on public SurveyPage (show "This survey has closed" if expiresAt is in the past)
+- [x] Add invitations list view per survey (/org/:orgId/surveys/:surveyId/invitations)
+- [x] Remove "View Demo" button from landing page hero (Home.tsx)

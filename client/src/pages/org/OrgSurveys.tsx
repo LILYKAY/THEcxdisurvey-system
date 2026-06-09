@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, BarChart2, Send, Settings, FileText } from "lucide-react";
+import { Plus, BarChart2, Send, Settings, FileText, Mail } from "lucide-react";
 
 export default function OrgSurveys() {
   const { orgId } = useParams<{ orgId: string }>();
@@ -133,6 +133,9 @@ export default function OrgSurveys() {
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/analytics`)}>
                         <BarChart2 className="w-4 h-4 mr-1" /> Analytics
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/invitations`)}>
+                        <Mail className="w-4 h-4 mr-1" /> Invitations
                       </Button>
                       {s.status === "active" ? (
                         <Button variant="outline" size="sm" onClick={() => deactivateSurvey.mutate({ id: s.id })} className="text-yellow-600 border-yellow-300 hover:bg-yellow-50">

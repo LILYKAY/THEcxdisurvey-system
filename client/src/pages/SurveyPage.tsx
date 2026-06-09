@@ -435,13 +435,17 @@ export default function SurveyPage() {
   const alreadyCompleted = data?.alreadyCompleted ?? false;
 
   // Auto-start response as soon as survey data loads (no intro screen)
+  // Guard: do not start if the survey has expired
+  const surveyExpiresAt = data ? (data.survey as any).expiresAt : null;
+  const isSurveyExpired = surveyExpiresAt && new Date(surveyExpiresAt) < new Date();
+
   useEffect(() => {
-    if (!data || alreadyCompleted || responseId) return;
+    if (!data || alreadyCompleted || responseId || isSurveyExpired) return;
     startResponse.mutateAsync({ token: token ?? "" })
       .then((result) => setResponseId(result.responseId))
       .catch((e) => console.error("startResponse error:", e));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [!!data, alreadyCompleted]);
+  }, [!!data, alreadyCompleted, !!isSurveyExpired]);
 
   const questions: SurveyQuestion[] = useMemo(() => {
     if (!data?.questions) return [];
@@ -515,7 +519,8 @@ export default function SurveyPage() {
   };
 
   // Show skeleton while fetching survey data OR while auto-starting the response
-  const isInitializing = isLoading || (!!data && !alreadyCompleted && !responseId && startResponse.isPending);
+  // Do not show skeleton for expired surveys — they skip to the closed screen
+  const isInitializing = isLoading || (!!data && !alreadyCompleted && !isSurveyExpired && !responseId && startResponse.isPending);
 
   if (isInitializing) {
     return <SurveySkeleton />;
@@ -529,6 +534,45 @@ export default function SurveyPage() {
         <p className="max-w-sm text-muted-foreground">
           This survey link is invalid, expired, or has been deactivated. Please contact the sender for a new link.
         </p>
+      </div>
+    );
+  }
+
+  // Survey expiry check — show a closed screen if expiresAt is set and in the past
+  if (isSurveyExpired) {
+    const primary = data.branding?.primaryColor ?? "#03989e";
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-border bg-card/80 sticky top-0 z-10">
+          <div className="container flex h-14 items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded bg-primary">
+                <BarChart3 className="h-3.5 w-3.5 text-primary-foreground" />
+              </div>
+              <span className="font-serif text-base font-semibold text-foreground">SurveyPro</span>
+            </div>
+          </div>
+        </header>
+        <div className="container max-w-2xl py-10">
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
+            {data.branding?.logoUrl ? (
+              <img src={data.branding.logoUrl} alt="Organisation logo" className="h-12 object-contain" />
+            ) : null}
+            <div className="flex h-20 w-20 items-center justify-center rounded-full" style={{ backgroundColor: `${primary}20` }}>
+              <AlertCircle className="h-10 w-10" style={{ color: primary }} />
+            </div>
+            <div className="space-y-2 max-w-md">
+              <h1 className="font-serif text-3xl font-bold text-foreground">Survey Closed</h1>
+              <p className="text-muted-foreground leading-relaxed">
+                This survey is no longer accepting responses. The collection period has ended.
+              </p>
+            </div>
+            {data.branding?.signatureTag && (
+              <p className="text-xs text-muted-foreground border-t border-border pt-4 max-w-xs">{data.branding.signatureTag}</p>
+            )}
+            <p className="text-xs text-muted-foreground">You may now close this window.</p>
+          </div>
+        </div>
       </div>
     );
   }

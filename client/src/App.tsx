@@ -38,6 +38,7 @@ import OrgSurveyBuilder from "./pages/org/OrgSurveyBuilder";
 import OrgSendSurvey from "./pages/org/OrgSendSurvey";
 import OrgEmailBranding from "./pages/org/OrgEmailBranding";
 import OrgAnalytics from "./pages/org/OrgAnalytics";
+import OrgSurveyInvitations from "./pages/org/OrgSurveyInvitations";
 
 function Router() {
   return (
@@ -70,6 +71,7 @@ function Router() {
       <Route path="/org/:orgId/surveys/:surveyId/builder" component={OrgSurveyBuilder} />
       <Route path="/org/:orgId/surveys/:surveyId/send" component={OrgSendSurvey} />
       <Route path="/org/:orgId/surveys/:surveyId/analytics" component={OrgAnalytics} />
+      <Route path="/org/:orgId/surveys/:surveyId/invitations" component={OrgSurveyInvitations} />
       <Route path="/org/:orgId/contacts" component={OrgContacts} />
       <Route path="/org/:orgId/audiences" component={OrgAudiences} />
       <Route path="/org/:orgId/respondents" component={OrgRespondents} />

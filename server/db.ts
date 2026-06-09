@@ -756,6 +756,32 @@ export async function getInvitationsByOrg(organizationId: number) {
     .orderBy(desc(surveyInvitations.createdAt));
 }
 
+export async function getInvitationsBySurvey(organizationId: number, surveyId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: surveyInvitations.id,
+      recipientEmail: surveyInvitations.recipientEmail,
+      recipientName: surveyInvitations.recipientName,
+      status: surveyInvitations.status,
+      sentAt: surveyInvitations.sentAt,
+      openedAt: surveyInvitations.openedAt,
+      completedAt: surveyInvitations.completedAt,
+      inviteToken: surveyInvitations.inviteToken,
+      channel: surveyInvitations.channel,
+      createdAt: surveyInvitations.createdAt,
+    })
+    .from(surveyInvitations)
+    .where(
+      and(
+        eq(surveyInvitations.organizationId, organizationId),
+        eq(surveyInvitations.surveyId, surveyId)
+      )
+    )
+    .orderBy(desc(surveyInvitations.createdAt));
+}
+
 export async function updateInvitationStatus(
   token: string,
   status: SurveyInvitation["status"],
@@ -783,23 +809,25 @@ export async function markInvitationFailed(id: number) {
 export async function getAdminOverviewMetrics() {
   const db = await getDb();
   if (!db) return null;
-  const [totalOrgs] = await db.select({ count: count() }).from(organizations);
-  const [totalRespondents] = await db.select({ count: count() }).from(respondents);
-  const [totalResponses] = await db.select({ count: count() }).from(surveyResponses);
-  const [completedResponses] = await db
-    .select({ count: count() })
-    .from(surveyResponses)
-    .where(eq(surveyResponses.isComplete, true));
-  const [totalSurveys] = await db.select({ count: count() }).from(surveys);
+  const [totalOrgsRow, totalRespondentsRow, totalResponsesRow, completedResponsesRow, totalSurveysRow] =
+    await Promise.all([
+      db.select({ count: count() }).from(organizations).then(r => r[0]),
+      db.select({ count: count() }).from(respondents).then(r => r[0]),
+      db.select({ count: count() }).from(surveyResponses).then(r => r[0]),
+      db.select({ count: count() }).from(surveyResponses).where(eq(surveyResponses.isComplete, true)).then(r => r[0]),
+      db.select({ count: count() }).from(surveys).then(r => r[0]),
+    ]);
+  const totalResponses = totalResponsesRow?.count ?? 0;
+  const completedResponses = completedResponsesRow?.count ?? 0;
   return {
-    totalOrganizations: totalOrgs?.count ?? 0,
-    totalRespondents: totalRespondents?.count ?? 0,
-    totalResponses: totalResponses?.count ?? 0,
-    completedResponses: completedResponses?.count ?? 0,
-    totalSurveys: totalSurveys?.count ?? 0,
+    totalOrganizations: totalOrgsRow?.count ?? 0,
+    totalRespondents: totalRespondentsRow?.count ?? 0,
+    totalResponses,
+    completedResponses,
+    totalSurveys: totalSurveysRow?.count ?? 0,
     completionRate:
-      (totalResponses?.count ?? 0) > 0
-        ? Math.round(((completedResponses?.count ?? 0) / (totalResponses?.count ?? 1)) * 100)
+      totalResponses > 0
+        ? Math.round((completedResponses / totalResponses) * 100)
         : 0,
   };
 }
