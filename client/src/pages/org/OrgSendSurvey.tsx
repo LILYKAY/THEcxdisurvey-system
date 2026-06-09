@@ -26,7 +26,10 @@ export default function OrgSendSurvey() {
   const [singleEmail, setSingleEmail] = useState("");
   const [singleName, setSingleName] = useState("");
 
-  const { data: survey } = trpc.surveys.get.useQuery({ id: surveyIdNum });
+  const { data: survey, isLoading: surveyLoading, error: surveyError } = trpc.surveys.get.useQuery(
+    { id: surveyIdNum },
+    { retry: false }
+  );
   const { data: audiences } = trpc.audiences.list.useQuery({ organizationId: orgIdNum });
   const { data: links } = trpc.surveys.getLinks.useQuery({ surveyId: surveyIdNum });
 
@@ -55,6 +58,36 @@ export default function OrgSendSurvey() {
   ];
 
   const surveyBaseUrl = window.location.origin;
+
+  if (surveyLoading) {
+    return (
+      <DashboardLayout navItems={navItems} title="Send Survey">
+        <div className="max-w-3xl mx-auto space-y-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-1/3" />
+            <div className="h-40 bg-gray-200 rounded" />
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (surveyError || !survey) {
+    return (
+      <DashboardLayout navItems={[{ label: "Dashboard", href: `/org/${orgId}` }, { label: "Surveys", href: `/org/${orgId}/surveys` }]} title="Send Survey">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center py-16">
+            <div className="text-5xl mb-4">🔍</div>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Survey not found</h2>
+            <p className="text-gray-500 mb-6">The survey you are looking for does not exist or you do not have access to it.</p>
+            <Button onClick={() => navigate(`/org/${orgId}/surveys`)} className="bg-[#03989e] hover:bg-[#116962] text-white">
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back to Surveys
+            </Button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout navItems={navItems} title="Send Survey">
