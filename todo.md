@@ -112,3 +112,59 @@
 - [x] Build /org-select page listing all orgs for org_owner
 - [x] Redirect org_owner to /org-select after login (already in Login.tsx)
 - [x] Write tests for forgot/reset password procedures (26 tests passing)
+
+## Phase 12: Full Platform Rebuild — CXDi SurveyPro
+
+### Branding & Landing Page
+- [x] Remove "View Demo" button from landing page
+- [x] Rebrand platform to "CXDi SurveyPro" throughout
+- [x] Use CXDi logo (/manus-storage/cxdi-logo_a23287e4.jpg)
+- [x] Update global color theme to CXDi teal
+- [x] Clean landing page copy — no exaggerated claims
+
+### Database Schema Extensions
+- [x] Extend surveys table: joinCode, objective, status (active/inactive/draft), expiresAt
+- [x] Add survey_questions table: full question types (nps, csat, ces5, ces7, open_ended, multiple_choice_single, multiple_choice_multi, yes_no, range_0_10, number_input, year, date), branching logic JSON
+- [x] Add contacts table: name, email, phone, channel, organizationId
+- [x] Add audiences table: name, organizationId, channel, contactCount
+- [x] Add audience_contacts join table
+- [x] Add email_branding table: organizationId, logoUrl, primaryColor, secondaryColor, signatureTag, usePlatformBranding
+- [x] Add mfa_settings: userId, mfaEnabled, mfaMethod
+- [x] Add mfa_otp_codes: userId, code, expiresAt, usedAt
+- [x] Add isRestricted, restrictionReason to organizations
+- [x] Apply all migrations, clear all existing data
+
+### Survey Builder
+- [x] /surveys page: list with status, join code, completions, progress ring, last activity, actions menu
+- [x] /surveys/create page: title, add/reorder questions
+- [x] Question type picker modal (12 types)
+- [x] Question settings: max chars, mandatory toggle
+- [x] Branching logic editor
+- [x] Survey actions: View Report, Send, Edit, Copy Join Code, Copy Webform Link, Copy Anonymous Link, Embed Widget, Share, Duplicate, QR Code, Deactivate, Delete
+
+### Contacts & Audiences
+- [x] /contacts page: list, add manually, CSV import (up to 1500)
+- [x] /audiences page: create audience, assign contacts, channel selection
+
+### Survey Sending & Email Branding
+- [x] Send survey flow: select audience, channel (email/whatsapp/sms), preview, send
+- [x] Confidentiality notice in all survey invitations
+- [x] Email branding settings: logo, colors, signature tag, or platform branding
+
+### Dashboard Rebuild
+- [x] Response feed with NPS score badge, survey name, timestamp, comment
+- [x] NPS donut chart (Promoters/Passives/Detractors) with score center
+- [x] Percentage bars for each NPS category
+- [x] Trending themes section
+- [x] Recent surveys section
+- [x] Date range filter
+
+### Account Security
+- [x] Account settings: change email, change password
+- [x] MFA settings: enable/disable email OTP
+- [x] Admin: restrict/suspend account with reason
+
+### Auditproo First Account
+- [x] Create Auditproo org with generated credentials
+- [x] Seed 3 surveys from research document (Partner, Audit Staff, Administrator)
+- [x] Share credentials with user

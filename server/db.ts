@@ -2,20 +2,28 @@ import { and, count, desc, eq, gte, sql } from "drizzle-orm";
 import { type MySql2Database, drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import {
-  CustomQuestion,
-  InsertCustomQuestion,
+  InsertAudience,
+  AudienceContact,
+  InsertContact,
+  InsertEmailBranding,
   InsertOrganization,
   InsertRespondent,
   InsertResponseAnswer,
   InsertResponseAnswerHistory,
   InsertSurveyInvitation,
   InsertSurveyLink,
+  InsertSurveyQuestion,
   InsertSurveyResponse,
   InsertUser,
   Organization,
   PasswordResetToken,
   SurveyInvitation,
-  customQuestions,
+  audienceContacts,
+  audiences,
+  contacts,
+  emailBranding,
+  mfaOtpCodes,
+  mfaSettings,
   organizations,
   passwordResetTokens,
   respondents,
@@ -23,6 +31,7 @@ import {
   responseAnswers,
   surveyInvitations,
   surveyLinks,
+  surveyQuestions,
   surveyResponses,
   surveys,
   users,
@@ -33,9 +42,6 @@ let _db: MySql2Database | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      // Use a connection pool for TiDB Serverless compatibility.
-      // A raw connection string creates a single connection that TiDB may drop;
-      // a pool keeps connections alive and reconnects automatically.
       const pool = mysql.createPool({
         uri: process.env.DATABASE_URL,
         ssl: { rejectUnauthorized: true },
@@ -107,6 +113,13 @@ export async function getUserByEmail(email: string) {
   return result[0];
 }
 
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return result[0];
+}
+
 export async function getAllUsers() {
   const db = await getDb();
   if (!db) return [];
@@ -124,6 +137,94 @@ export async function updateUserRole(userId: number, role: "user" | "admin" | "o
   const db = await getDb();
   if (!db) return;
   await db.update(users).set({ role }).where(eq(users.id, userId));
+}
+
+export async function updateUserPassword(userId: number, passwordHash: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
+}
+
+export async function updateUserProfile(userId: number, data: { name?: string; email?: string }) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.update(users).set({ ...data, updatedAt: new Date() }).where(eq(users.id, userId));
+  return true;
+}
+
+// ─── MFA Settings ─────────────────────────────────────────────────────────────
+
+export async function getMfaSettings(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(mfaSettings).where(eq(mfaSettings.userId, userId));
+  return row ?? null;
+}
+
+export async function upsertMfaSettings(userId: number, mfaEnabled: boolean) {
+  const db = await getDb();
+  if (!db) return false;
+  await db
+    .insert(mfaSettings)
+    .values({ userId, mfaEnabled })
+    .onDuplicateKeyUpdate({ set: { mfaEnabled, updatedAt: new Date() } });
+  return true;
+}
+
+export async function createMfaOtp(userId: number, code: string, expiresAt: Date) {
+  const db = await getDb();
+  if (!db) return false;
+  await db
+    .update(mfaOtpCodes)
+    .set({ usedAt: new Date() })
+    .where(and(eq(mfaOtpCodes.userId, userId), sql`${mfaOtpCodes.usedAt} IS NULL`));
+  await db.insert(mfaOtpCodes).values({ userId, code, expiresAt });
+  return true;
+}
+
+export async function verifyMfaOtp(userId: number, code: string) {
+  const db = await getDb();
+  if (!db) return false;
+  const now = new Date();
+  const [row] = await db
+    .select()
+    .from(mfaOtpCodes)
+    .where(
+      and(
+        eq(mfaOtpCodes.userId, userId),
+        eq(mfaOtpCodes.code, code),
+        sql`${mfaOtpCodes.usedAt} IS NULL`,
+        gte(mfaOtpCodes.expiresAt, now)
+      )
+    );
+  if (!row) return false;
+  await db.update(mfaOtpCodes).set({ usedAt: now }).where(eq(mfaOtpCodes.id, row.id));
+  return true;
+}
+
+// ─── Password Reset Tokens ────────────────────────────────────────────────────
+
+export async function createPasswordResetToken(userId: number, token: string, expiresAt: Date): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(passwordResetTokens).values({ userId, token, expiresAt });
+}
+
+export async function getPasswordResetToken(token: string): Promise<PasswordResetToken | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db
+    .select()
+    .from(passwordResetTokens)
+    .where(eq(passwordResetTokens.token, token))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function markResetTokenUsed(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.id, id));
 }
 
 // ─── Organizations ────────────────────────────────────────────────────────────
@@ -150,11 +251,7 @@ export async function getOrganizationById(id: number) {
 export async function getOrganizationBySlug(slug: string) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db
-    .select()
-    .from(organizations)
-    .where(eq(organizations.slug, slug))
-    .limit(1);
+  const result = await db.select().from(organizations).where(eq(organizations.slug, slug)).limit(1);
   return result[0];
 }
 
@@ -170,13 +267,48 @@ export async function getAllOrganizations() {
   return db.select().from(organizations).orderBy(desc(organizations.createdAt));
 }
 
-export async function updateOrganization(
-  id: number,
-  data: Partial<InsertOrganization>
-) {
+export async function updateOrganization(id: number, data: Partial<InsertOrganization>) {
   const db = await getDb();
   if (!db) return;
   await db.update(organizations).set(data).where(eq(organizations.id, id));
+}
+
+export async function setOrganizationRestriction(id: number, isRestricted: boolean, reason?: string) {
+  const db = await getDb();
+  if (!db) return false;
+  await db
+    .update(organizations)
+    .set({ isRestricted, restrictionReason: reason ?? null, updatedAt: new Date() })
+    .where(eq(organizations.id, id));
+  return true;
+}
+
+// ─── Email Branding ───────────────────────────────────────────────────────────
+
+export async function getEmailBranding(organizationId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(emailBranding).where(eq(emailBranding.organizationId, organizationId));
+  return row ?? null;
+}
+
+export async function upsertEmailBranding(data: InsertEmailBranding) {
+  const db = await getDb();
+  if (!db) return false;
+  await db
+    .insert(emailBranding)
+    .values(data)
+    .onDuplicateKeyUpdate({
+      set: {
+        logoUrl: data.logoUrl,
+        primaryColor: data.primaryColor,
+        secondaryColor: data.secondaryColor,
+        signatureTag: data.signatureTag,
+        usePlatformBranding: data.usePlatformBranding,
+        updatedAt: new Date(),
+      },
+    });
+  return true;
 }
 
 // ─── Surveys ──────────────────────────────────────────────────────────────────
@@ -184,7 +316,7 @@ export async function updateOrganization(
 export async function getSurveysByOrg(organizationId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(surveys).where(eq(surveys.organizationId, organizationId));
+  return db.select().from(surveys).where(eq(surveys.organizationId, organizationId)).orderBy(desc(surveys.createdAt));
 }
 
 export async function getSurveyById(id: number) {
@@ -194,24 +326,21 @@ export async function getSurveyById(id: number) {
   return result[0];
 }
 
-export async function createSurvey(data: {
+export async function createSurveyRecord(data: {
   organizationId: number;
-  formKey: "current_customers" | "dropped_customers" | "repeat_trial" | "single_trial";
   title: string;
   description?: string;
+  objective?: string;
+  isAnonymous?: boolean;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.insert(surveys).values(data);
+  const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  await db.insert(surveys).values({ ...data, joinCode, status: "draft" });
   const result = await db
     .select()
     .from(surveys)
-    .where(
-      and(
-        eq(surveys.organizationId, data.organizationId),
-        eq(surveys.formKey, data.formKey)
-      )
-    )
+    .where(eq(surveys.organizationId, data.organizationId))
     .orderBy(desc(surveys.createdAt))
     .limit(1);
   return result[0]!;
@@ -226,22 +355,16 @@ export async function getAllSurveys() {
 export async function getAllSurveysWithStats() {
   const db = await getDb();
   if (!db) return [];
-  const allSurveys = await db
-    .select()
-    .from(surveys)
-    .orderBy(desc(surveys.createdAt));
+  const allSurveys = await db.select().from(surveys).orderBy(desc(surveys.createdAt));
   const results = await Promise.all(
     allSurveys.map(async (survey) => {
       const org = await db!.select().from(organizations).where(eq(organizations.id, survey.organizationId)).limit(1);
       const links = await db!.select().from(surveyLinks).where(eq(surveyLinks.surveyId, survey.id));
-      const responses = await db!
-        .select({ cnt: count() })
-        .from(surveyResponses)
-        .where(eq(surveyResponses.surveyId, survey.id));
+      const responses = await db!.select({ cnt: count() }).from(surveyResponses).where(eq(surveyResponses.surveyId, survey.id));
       const completedResponses = await db!
         .select({ cnt: count() })
         .from(surveyResponses)
-        .where(and(eq(surveyResponses.surveyId, survey.id), eq(surveyResponses.status, "completed")));
+        .where(and(eq(surveyResponses.surveyId, survey.id), eq(surveyResponses.isComplete, true)));
       return {
         ...survey,
         organization: org[0] ?? null,
@@ -254,17 +377,66 @@ export async function getAllSurveysWithStats() {
   return results;
 }
 
+export async function updateSurvey(id: number, data: Partial<InsertSurveyResponse>) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.update(surveys).set({ ...data, updatedAt: new Date() }).where(eq(surveys.id, id));
+  return true;
+}
+
+// ─── Survey Questions ─────────────────────────────────────────────────────────
+
+export async function getSurveyQuestions(surveyId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(surveyQuestions)
+    .where(and(eq(surveyQuestions.surveyId, surveyId), eq(surveyQuestions.isActive, true)))
+    .orderBy(surveyQuestions.sortOrder);
+}
+
+export async function createSurveyQuestion(data: InsertSurveyQuestion) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(surveyQuestions).values(data).$returningId();
+  const [q] = await db.select().from(surveyQuestions).where(eq(surveyQuestions.id, result.id));
+  return q ?? null;
+}
+
+export async function updateSurveyQuestion(id: number, data: Partial<InsertSurveyQuestion>) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.update(surveyQuestions).set({ ...data, updatedAt: new Date() }).where(eq(surveyQuestions.id, id));
+  return true;
+}
+
+export async function deleteSurveyQuestion(id: number) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.update(surveyQuestions).set({ isActive: false, updatedAt: new Date() }).where(eq(surveyQuestions.id, id));
+  return true;
+}
+
+export async function reorderSurveyQuestions(questionIds: number[]) {
+  const db = await getDb();
+  if (!db) return false;
+  for (let i = 0; i < questionIds.length; i++) {
+    await db
+      .update(surveyQuestions)
+      .set({ sortOrder: i, updatedAt: new Date() })
+      .where(eq(surveyQuestions.id, questionIds[i]));
+  }
+  return true;
+}
+
 // ─── Survey Links ─────────────────────────────────────────────────────────────
 
 export async function createSurveyLink(data: InsertSurveyLink) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.insert(surveyLinks).values(data);
-  const result = await db
-    .select()
-    .from(surveyLinks)
-    .where(eq(surveyLinks.token, data.token))
-    .limit(1);
+  const result = await db.select().from(surveyLinks).where(eq(surveyLinks.token, data.token)).limit(1);
   return result[0]!;
 }
 
@@ -291,6 +463,112 @@ export async function deactivateSurveyLink(id: number) {
   await db.update(surveyLinks).set({ isActive: false }).where(eq(surveyLinks.id, id));
 }
 
+// ─── Contacts ─────────────────────────────────────────────────────────────────
+
+export async function getContactsByOrg(organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(contacts).where(eq(contacts.organizationId, organizationId)).orderBy(desc(contacts.createdAt));
+}
+
+export async function createContact(data: InsertContact) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(contacts).values(data).$returningId();
+  const [contact] = await db.select().from(contacts).where(eq(contacts.id, result.id));
+  return contact ?? null;
+}
+
+export async function bulkCreateContacts(data: InsertContact[]) {
+  const db = await getDb();
+  if (!db || data.length === 0) return 0;
+  await db.insert(contacts).values(data);
+  return data.length;
+}
+
+export async function updateContact(id: number, data: Partial<InsertContact>) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.update(contacts).set({ ...data, updatedAt: new Date() }).where(eq(contacts.id, id));
+  return true;
+}
+
+export async function deleteContact(id: number) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.delete(contacts).where(eq(contacts.id, id));
+  return true;
+}
+
+export async function countContactsByOrg(organizationId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const [row] = await db.select({ count: count() }).from(contacts).where(eq(contacts.organizationId, organizationId));
+  return row?.count ?? 0;
+}
+
+// ─── Audiences ────────────────────────────────────────────────────────────────
+
+export async function getAudiencesByOrg(organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(audiences).where(eq(audiences.organizationId, organizationId)).orderBy(desc(audiences.createdAt));
+}
+
+export async function createAudience(data: InsertAudience) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(audiences).values(data).$returningId();
+  const [audience] = await db.select().from(audiences).where(eq(audiences.id, result.id));
+  return audience ?? null;
+}
+
+export async function deleteAudience(id: number) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.delete(audienceContacts).where(eq(audienceContacts.audienceId, id));
+  await db.delete(audiences).where(eq(audiences.id, id));
+  return true;
+}
+
+export async function addContactsToAudience(audienceId: number, contactIds: number[]) {
+  const db = await getDb();
+  if (!db) return false;
+  const values = contactIds.map((contactId) => ({ audienceId, contactId }));
+  if (values.length > 0) await db.insert(audienceContacts).values(values);
+  return true;
+}
+
+export async function removeContactFromAudience(audienceId: number, contactId: number) {
+  const db = await getDb();
+  if (!db) return false;
+  await db
+    .delete(audienceContacts)
+    .where(and(eq(audienceContacts.audienceId, audienceId), eq(audienceContacts.contactId, contactId)));
+  return true;
+}
+
+export async function getAudienceContacts(audienceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .select({ contact: contacts })
+    .from(audienceContacts)
+    .innerJoin(contacts, eq(audienceContacts.contactId, contacts.id))
+    .where(eq(audienceContacts.audienceId, audienceId));
+  return rows.map((r) => r.contact);
+}
+
+export async function countAudienceContacts(audienceId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const [row] = await db
+    .select({ count: count() })
+    .from(audienceContacts)
+    .where(eq(audienceContacts.audienceId, audienceId));
+  return row?.count ?? 0;
+}
+
 // ─── Respondents ──────────────────────────────────────────────────────────────
 
 export async function createRespondent(data: InsertRespondent) {
@@ -309,11 +587,7 @@ export async function createRespondent(data: InsertRespondent) {
 export async function getRespondentsByOrg(organizationId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db
-    .select()
-    .from(respondents)
-    .where(eq(respondents.organizationId, organizationId))
-    .orderBy(desc(respondents.createdAt));
+  return db.select().from(respondents).where(eq(respondents.organizationId, organizationId)).orderBy(desc(respondents.createdAt));
 }
 
 export async function getRespondentById(id: number) {
@@ -338,12 +612,7 @@ export async function createSurveyResponse(data: InsertSurveyResponse) {
   const result = await db
     .select()
     .from(surveyResponses)
-    .where(
-      and(
-        eq(surveyResponses.respondentId, data.respondentId),
-        eq(surveyResponses.surveyId, data.surveyId)
-      )
-    )
+    .where(eq(surveyResponses.surveyId, data.surveyId))
     .orderBy(desc(surveyResponses.startedAt))
     .limit(1);
   return result[0]!;
@@ -352,11 +621,7 @@ export async function createSurveyResponse(data: InsertSurveyResponse) {
 export async function getSurveyResponseById(id: number) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db
-    .select()
-    .from(surveyResponses)
-    .where(eq(surveyResponses.id, id))
-    .limit(1);
+  const result = await db.select().from(surveyResponses).where(eq(surveyResponses.id, id)).limit(1);
   return result[0];
 }
 
@@ -373,29 +638,20 @@ export async function getSurveyResponsesByOrg(organizationId: number) {
 export async function getSurveyResponsesBySurvey(surveyId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db
-    .select()
-    .from(surveyResponses)
-    .where(eq(surveyResponses.surveyId, surveyId))
-    .orderBy(desc(surveyResponses.startedAt));
+  return db.select().from(surveyResponses).where(eq(surveyResponses.surveyId, surveyId)).orderBy(desc(surveyResponses.startedAt));
 }
 
-export async function getSurveyResponsesByRespondent(respondentId: number) {
-  const db = await getDb();
-  if (!db) return [];
-  return db
-    .select()
-    .from(surveyResponses)
-    .where(eq(surveyResponses.respondentId, respondentId))
-    .orderBy(desc(surveyResponses.startedAt));
-}
-
-export async function completeSurveyResponse(id: number) {
+export async function completeSurveyResponse(id: number, data?: {
+  npsScore?: number;
+  csatScore?: number;
+  cesScore?: number;
+  sentiment?: "promoter" | "passive" | "detractor";
+}) {
   const db = await getDb();
   if (!db) return;
   await db
     .update(surveyResponses)
-    .set({ status: "completed", completedAt: new Date() })
+    .set({ ...data, isComplete: true, completedAt: new Date(), updatedAt: new Date() })
     .where(eq(surveyResponses.id, id));
 }
 
@@ -415,21 +671,14 @@ export async function upsertResponseAnswer(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Check if an answer already exists
   const existing = await db
     .select()
     .from(responseAnswers)
-    .where(
-      and(
-        eq(responseAnswers.surveyResponseId, surveyResponseId),
-        eq(responseAnswers.questionKey, questionKey)
-      )
-    )
+    .where(and(eq(responseAnswers.surveyResponseId, surveyResponseId), eq(responseAnswers.questionKey, questionKey)))
     .limit(1);
 
   if (existing.length > 0) {
     const current = existing[0]!;
-    // Archive the current version to history before updating
     const historyEntry: InsertResponseAnswerHistory = {
       responseAnswerId: current.id,
       surveyResponseId,
@@ -438,20 +687,9 @@ export async function upsertResponseAnswer(
       version: current.version,
     };
     await db.insert(responseAnswerHistory).values(historyEntry);
-
-    // Update the current answer
-    await db
-      .update(responseAnswers)
-      .set({ value, version: current.version + 1 })
-      .where(eq(responseAnswers.id, current.id));
+    await db.update(responseAnswers).set({ value, version: current.version + 1 }).where(eq(responseAnswers.id, current.id));
   } else {
-    // Insert new answer
-    const newAnswer: InsertResponseAnswer = {
-      surveyResponseId,
-      questionKey,
-      value,
-      version: 1,
-    };
+    const newAnswer: InsertResponseAnswer = { surveyResponseId, questionKey, value, version: 1 };
     await db.insert(responseAnswers).values(newAnswer);
   }
 }
@@ -459,10 +697,7 @@ export async function upsertResponseAnswer(
 export async function getAnswersByResponse(surveyResponseId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db
-    .select()
-    .from(responseAnswers)
-    .where(eq(responseAnswers.surveyResponseId, surveyResponseId));
+  return db.select().from(responseAnswers).where(eq(responseAnswers.surveyResponseId, surveyResponseId));
 }
 
 export async function getAnswerHistory(responseAnswerId: number) {
@@ -473,142 +708,6 @@ export async function getAnswerHistory(responseAnswerId: number) {
     .from(responseAnswerHistory)
     .where(eq(responseAnswerHistory.responseAnswerId, responseAnswerId))
     .orderBy(desc(responseAnswerHistory.recordedAt));
-}
-
-export async function getFullAnswerHistoryByResponse(surveyResponseId: number) {
-  const db = await getDb();
-  if (!db) return [];
-  return db
-    .select()
-    .from(responseAnswerHistory)
-    .where(eq(responseAnswerHistory.surveyResponseId, surveyResponseId))
-    .orderBy(desc(responseAnswerHistory.recordedAt));
-}
-
-// ─── Analytics ────────────────────────────────────────────────────────────────
-
-export async function getAdminOverviewMetrics() {
-  const db = await getDb();
-  if (!db) return null;
-
-  const [totalOrgs] = await db.select({ count: count() }).from(organizations);
-  const [totalRespondents] = await db.select({ count: count() }).from(respondents);
-  const [totalResponses] = await db.select({ count: count() }).from(surveyResponses);
-  const [completedResponses] = await db
-    .select({ count: count() })
-    .from(surveyResponses)
-    .where(eq(surveyResponses.status, "completed"));
-  const [totalSurveys] = await db.select({ count: count() }).from(surveys);
-
-  return {
-    totalOrganizations: totalOrgs?.count ?? 0,
-    totalRespondents: totalRespondents?.count ?? 0,
-    totalResponses: totalResponses?.count ?? 0,
-    completedResponses: completedResponses?.count ?? 0,
-    totalSurveys: totalSurveys?.count ?? 0,
-    completionRate:
-      (totalResponses?.count ?? 0) > 0
-        ? Math.round(((completedResponses?.count ?? 0) / (totalResponses?.count ?? 1)) * 100)
-        : 0,
-  };
-}
-
-export async function getResponseTrend(days: number = 30) {
-  const db = await getDb();
-  if (!db) return [];
-  const since = new Date();
-  since.setDate(since.getDate() - days);
-
-  const rows = await db
-    .select({
-      date: sql<string>`DATE(MIN(${surveyResponses.startedAt}))`,
-      count: count(),
-    })
-    .from(surveyResponses)
-    .where(gte(surveyResponses.startedAt, since))
-    .groupBy(sql`DATE(${surveyResponses.startedAt})`)
-    .orderBy(sql`DATE(MIN(${surveyResponses.startedAt}))`);
-
-  return rows;
-}
-
-export async function getResponsesByFormKey() {
-  const db = await getDb();
-  if (!db) return [];
-
-  const rows = await db
-    .select({
-      formKey: surveys.formKey,
-      count: count(),
-    })
-    .from(surveyResponses)
-    .innerJoin(surveys, eq(surveyResponses.surveyId, surveys.id))
-    .groupBy(surveys.formKey);
-
-  return rows;
-}
-
-export async function getOrgOverviewMetrics(organizationId: number) {
-  const db = await getDb();
-  if (!db) return null;
-
-  const [totalRespondents] = await db
-    .select({ count: count() })
-    .from(respondents)
-    .where(eq(respondents.organizationId, organizationId));
-
-  const [totalResponses] = await db
-    .select({ count: count() })
-    .from(surveyResponses)
-    .where(eq(surveyResponses.organizationId, organizationId));
-
-  const [completedResponses] = await db
-    .select({ count: count() })
-    .from(surveyResponses)
-    .where(
-      and(
-        eq(surveyResponses.organizationId, organizationId),
-        eq(surveyResponses.status, "completed")
-      )
-    );
-
-  const orgSurveys = await db
-    .select({ count: count() })
-    .from(surveys)
-    .where(eq(surveys.organizationId, organizationId));
-
-  return {
-    totalRespondents: totalRespondents?.count ?? 0,
-    totalResponses: totalResponses?.count ?? 0,
-    completedResponses: completedResponses?.count ?? 0,
-    totalSurveys: orgSurveys[0]?.count ?? 0,
-    completionRate:
-      (totalResponses?.count ?? 0) > 0
-        ? Math.round(((completedResponses?.count ?? 0) / (totalResponses?.count ?? 1)) * 100)
-        : 0,
-  };
-}
-
-export async function getOrgResponseTrend(organizationId: number, days: number = 30) {
-  const db = await getDb();
-  if (!db) return [];
-  const since = new Date();
-  since.setDate(since.getDate() - days);
-
-  return db
-    .select({
-      date: sql<string>`DATE(MIN(${surveyResponses.startedAt}))`,
-      count: count(),
-    })
-    .from(surveyResponses)
-    .where(
-      and(
-        eq(surveyResponses.organizationId, organizationId),
-        gte(surveyResponses.startedAt, since)
-      )
-    )
-    .groupBy(sql`DATE(${surveyResponses.startedAt})`)
-    .orderBy(sql`DATE(MIN(${surveyResponses.startedAt}))`);
 }
 
 // ─── Survey Invitations ───────────────────────────────────────────────────────
@@ -628,11 +727,7 @@ export async function createSurveyInvitation(data: InsertSurveyInvitation): Prom
 export async function getInvitationByToken(token: string): Promise<SurveyInvitation | undefined> {
   const db = await getDb();
   if (!db) return undefined;
-  const [row] = await db
-    .select()
-    .from(surveyInvitations)
-    .where(eq(surveyInvitations.inviteToken, token))
-    .limit(1);
+  const [row] = await db.select().from(surveyInvitations).where(eq(surveyInvitations.inviteToken, token)).limit(1);
   return row;
 }
 
@@ -651,8 +746,8 @@ export async function getInvitationsByOrg(organizationId: number) {
       inviteToken: surveyInvitations.inviteToken,
       personalMessage: surveyInvitations.personalMessage,
       surveyTitle: surveys.title,
-      formKey: surveys.formKey,
       surveyId: surveyInvitations.surveyId,
+      channel: surveyInvitations.channel,
       createdAt: surveyInvitations.createdAt,
     })
     .from(surveyInvitations)
@@ -668,118 +763,158 @@ export async function updateInvitationStatus(
 ) {
   const db = await getDb();
   if (!db) return;
-  await db
-    .update(surveyInvitations)
-    .set({ status, ...extra })
-    .where(eq(surveyInvitations.inviteToken, token));
+  await db.update(surveyInvitations).set({ status, ...extra }).where(eq(surveyInvitations.inviteToken, token));
 }
 
 export async function updateInvitationSentStatus(id: number) {
   const db = await getDb();
   if (!db) return;
-  await db
-    .update(surveyInvitations)
-    .set({ status: "sent", sentAt: new Date() })
-    .where(eq(surveyInvitations.id, id));
+  await db.update(surveyInvitations).set({ status: "sent", sentAt: new Date() }).where(eq(surveyInvitations.id, id));
 }
 
 export async function markInvitationFailed(id: number) {
   const db = await getDb();
   if (!db) return;
-  await db
-    .update(surveyInvitations)
-    .set({ status: "failed" })
-    .where(eq(surveyInvitations.id, id));
+  await db.update(surveyInvitations).set({ status: "failed" }).where(eq(surveyInvitations.id, id));
 }
 
-// ─── Custom Questions ─────────────────────────────────────────────────────────
+// ─── Analytics ────────────────────────────────────────────────────────────────
 
-export async function getCustomQuestions(surveyId: number, organizationId: number): Promise<CustomQuestion[]> {
+export async function getAdminOverviewMetrics() {
+  const db = await getDb();
+  if (!db) return null;
+  const [totalOrgs] = await db.select({ count: count() }).from(organizations);
+  const [totalRespondents] = await db.select({ count: count() }).from(respondents);
+  const [totalResponses] = await db.select({ count: count() }).from(surveyResponses);
+  const [completedResponses] = await db
+    .select({ count: count() })
+    .from(surveyResponses)
+    .where(eq(surveyResponses.isComplete, true));
+  const [totalSurveys] = await db.select({ count: count() }).from(surveys);
+  return {
+    totalOrganizations: totalOrgs?.count ?? 0,
+    totalRespondents: totalRespondents?.count ?? 0,
+    totalResponses: totalResponses?.count ?? 0,
+    completedResponses: completedResponses?.count ?? 0,
+    totalSurveys: totalSurveys?.count ?? 0,
+    completionRate:
+      (totalResponses?.count ?? 0) > 0
+        ? Math.round(((completedResponses?.count ?? 0) / (totalResponses?.count ?? 1)) * 100)
+        : 0,
+  };
+}
+
+export async function getResponseTrend(days: number = 30) {
+  const db = await getDb();
+  if (!db) return [];
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  return db
+    .select({
+      date: sql<string>`DATE(MIN(${surveyResponses.startedAt}))`,
+      count: count(),
+    })
+    .from(surveyResponses)
+    .where(gte(surveyResponses.startedAt, since))
+    .groupBy(sql`DATE(${surveyResponses.startedAt})`)
+    .orderBy(sql`DATE(MIN(${surveyResponses.startedAt}))`);
+}
+
+export async function getOrgOverviewMetrics(organizationId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [totalRespondents] = await db.select({ count: count() }).from(respondents).where(eq(respondents.organizationId, organizationId));
+  const [totalResponses] = await db.select({ count: count() }).from(surveyResponses).where(eq(surveyResponses.organizationId, organizationId));
+  const [completedResponses] = await db
+    .select({ count: count() })
+    .from(surveyResponses)
+    .where(and(eq(surveyResponses.organizationId, organizationId), eq(surveyResponses.isComplete, true)));
+  const [orgSurveys] = await db.select({ count: count() }).from(surveys).where(eq(surveys.organizationId, organizationId));
+  return {
+    totalRespondents: totalRespondents?.count ?? 0,
+    totalResponses: totalResponses?.count ?? 0,
+    completedResponses: completedResponses?.count ?? 0,
+    totalSurveys: orgSurveys?.count ?? 0,
+    completionRate:
+      (totalResponses?.count ?? 0) > 0
+        ? Math.round(((completedResponses?.count ?? 0) / (totalResponses?.count ?? 1)) * 100)
+        : 0,
+  };
+}
+
+export async function getOrgResponseTrend(organizationId: number, days: number = 30) {
+  const db = await getDb();
+  if (!db) return [];
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  return db
+    .select({
+      date: sql<string>`DATE(MIN(${surveyResponses.startedAt}))`,
+      count: count(),
+    })
+    .from(surveyResponses)
+    .where(and(eq(surveyResponses.organizationId, organizationId), gte(surveyResponses.startedAt, since)))
+    .groupBy(sql`DATE(${surveyResponses.startedAt})`)
+    .orderBy(sql`DATE(MIN(${surveyResponses.startedAt}))`);
+}
+
+export async function getOrgNpsSummary(organizationId: number) {
+  const db = await getDb();
+  if (!db) return { promoters: 0, passives: 0, detractors: 0, total: 0, npsScore: 0 };
+  const rows = await db
+    .select({ sentiment: surveyResponses.sentiment, cnt: count() })
+    .from(surveyResponses)
+    .where(
+      and(
+        eq(surveyResponses.organizationId, organizationId),
+        eq(surveyResponses.isComplete, true),
+        sql`${surveyResponses.sentiment} IS NOT NULL`
+      )
+    )
+    .groupBy(surveyResponses.sentiment);
+  let promoters = 0, passives = 0, detractors = 0;
+  for (const row of rows) {
+    if (row.sentiment === "promoter") promoters = row.cnt;
+    else if (row.sentiment === "passive") passives = row.cnt;
+    else if (row.sentiment === "detractor") detractors = row.cnt;
+  }
+  const total = promoters + passives + detractors;
+  const npsScore = total > 0 ? Math.round(((promoters - detractors) / total) * 100) : 0;
+  return { promoters, passives, detractors, total, npsScore };
+}
+
+export async function getOrgResponseFeed(organizationId: number, limit = 20) {
   const db = await getDb();
   if (!db) return [];
   return db
-    .select()
-    .from(customQuestions)
-    .where(
-      and(
-        eq(customQuestions.surveyId, surveyId),
-        eq(customQuestions.organizationId, organizationId),
-        eq(customQuestions.isActive, true)
-      )
-    )
-    .orderBy(customQuestions.sortOrder);
+    .select({
+      id: surveyResponses.id,
+      npsScore: surveyResponses.npsScore,
+      csatScore: surveyResponses.csatScore,
+      cesScore: surveyResponses.cesScore,
+      sentiment: surveyResponses.sentiment,
+      isComplete: surveyResponses.isComplete,
+      completedAt: surveyResponses.completedAt,
+      surveyTitle: surveys.title,
+    })
+    .from(surveyResponses)
+    .innerJoin(surveys, eq(surveyResponses.surveyId, surveys.id))
+    .where(and(eq(surveyResponses.organizationId, organizationId), eq(surveyResponses.isComplete, true)))
+    .orderBy(desc(surveyResponses.completedAt))
+    .limit(limit);
 }
 
-export async function createCustomQuestion(data: InsertCustomQuestion): Promise<CustomQuestion> {
+export async function getAdminStats() {
   const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.insert(customQuestions).values(data);
-  const [row] = await db
-    .select()
-    .from(customQuestions)
-    .where(
-      and(
-        eq(customQuestions.surveyId, data.surveyId),
-        eq(customQuestions.organizationId, data.organizationId),
-        eq(customQuestions.questionKey, data.questionKey)
-      )
-    )
-    .limit(1);
-  return row!;
-}
-
-export async function updateCustomQuestion(
-  id: number,
-  organizationId: number,
-  data: Partial<InsertCustomQuestion>
-) {
-  const db = await getDb();
-  if (!db) return;
-  await db
-    .update(customQuestions)
-    .set(data)
-    .where(and(eq(customQuestions.id, id), eq(customQuestions.organizationId, organizationId)));
-}
-
-export async function deleteCustomQuestion(id: number, organizationId: number) {
-  const db = await getDb();
-  if (!db) return;
-  // Soft-delete: mark as inactive
-  await db
-    .update(customQuestions)
-    .set({ isActive: false })
-    .where(and(eq(customQuestions.id, id), eq(customQuestions.organizationId, organizationId)));
-}
-
-// ─── Password Reset Tokens ────────────────────────────────────────────────────────────────────────────────
-export async function createPasswordResetToken(userId: number, token: string, expiresAt: Date): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.insert(passwordResetTokens).values({ userId, token, expiresAt });
-}
-
-export async function getPasswordResetToken(token: string): Promise<PasswordResetToken | null> {
-  const db = await getDb();
-  if (!db) return null;
-  const [row] = await db
-    .select()
-    .from(passwordResetTokens)
-    .where(eq(passwordResetTokens.token, token))
-    .limit(1);
-  return row ?? null;
-}
-
-export async function markResetTokenUsed(id: number): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-  await db
-    .update(passwordResetTokens)
-    .set({ usedAt: new Date() })
-    .where(eq(passwordResetTokens.id, id));
-}
-
-export async function updateUserPassword(userId: number, passwordHash: string): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
+  if (!db) return { totalOrgs: 0, totalUsers: 0, totalSurveys: 0, totalResponses: 0 };
+  const [orgRow] = await db.select({ count: count() }).from(organizations);
+  const [userRow] = await db.select({ count: count() }).from(users);
+  const [surveyRow] = await db.select({ count: count() }).from(surveys);
+  const [responseRow] = await db.select({ count: count() }).from(surveyResponses).where(eq(surveyResponses.isComplete, true));
+  return {
+    totalOrgs: orgRow?.count ?? 0,
+    totalUsers: userRow?.count ?? 0,
+    totalSurveys: surveyRow?.count ?? 0,
+    totalResponses: responseRow?.count ?? 0,
+  };
 }

@@ -212,10 +212,10 @@ export default function SurveyPage() {
     ? new URLSearchParams(window.location.search).get("invite") ?? undefined
     : undefined;
 
-  const { data, isLoading, error } = trpc.public.resolveSurveyLink.useQuery({ token });
+  const { data, isLoading, error } = trpc.public.getSurveyByToken.useQuery({ token });
 
   const startResponse = trpc.public.startResponse.useMutation();
-  const saveAnswers = trpc.public.saveAnswers.useMutation();
+  const saveAnswers = trpc.public.saveAnswer.useMutation();
 
   const [responseId, setResponseId] = useState<number | null>(null);
   const [step, setStep] = useState<"info" | "survey">("info");
@@ -223,7 +223,7 @@ export default function SurveyPage() {
   const [answers, setAnswers] = useState<Record<string, string | string[] | null>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  const form = data?.form as SurveyFormDefinition | undefined;
+  const form = data ? { title: data.survey.title, questions: data.questions.map((q: any, i: number) => ({ key: q.questionKey, text: q.questionText, type: q.questionType, required: q.isRequired, options: q.options, number: i + 1 })), greeting: data.survey.description } : undefined;
   const questions = form?.questions ?? [];
   const totalQ = questions.length;
   const progress = totalQ > 0 ? Math.round(((currentQ) / totalQ) * 100) : 0;
@@ -247,7 +247,7 @@ export default function SurveyPage() {
     company: string;
     country: string;
   }) => {
-    const result = await startResponse.mutateAsync({ token, ...info, inviteToken });
+    const result = await startResponse.mutateAsync({ token, respondentName: info.name, respondentEmail: info.email });
     setResponseId(result.responseId);
     setStep("survey");
   };
@@ -262,9 +262,8 @@ export default function SurveyPage() {
     // Auto-save current answer
     await saveAnswers.mutateAsync({
       responseId,
-      answers: [{ questionKey: currentQuestion.key, value: currentAnswer }],
-      complete: false,
-      inviteToken,
+      questionKey: currentQuestion.key,
+      value: currentAnswer,
     });
     setCurrentQ((q) => q + 1);
   };
@@ -280,12 +279,10 @@ export default function SurveyPage() {
         questionKey: q.key,
         value: answers[q.key] ?? null,
       }));
-      await saveAnswers.mutateAsync({
-        responseId,
-        answers: remaining,
-        complete: true,
-        inviteToken,
-      });
+      // Save answers one by one
+      for (const ans of remaining) {
+        await saveAnswers.mutateAsync({ responseId, questionKey: ans.questionKey, value: ans.value });
+      }
       navigate("/survey-complete");
     } finally {
       setSubmitting(false);
@@ -327,8 +324,8 @@ export default function SurveyPage() {
             </div>
             <span className="font-serif text-base font-semibold text-foreground">SurveyPro</span>
           </div>
-          {data.organization && (
-            <span className="text-sm text-muted-foreground">{data.organization.name}</span>
+          {data.survey && (
+            <span className="text-sm text-muted-foreground">{data.survey.title}</span>
           )}
         </div>
       </header>
@@ -339,12 +336,12 @@ export default function SurveyPage() {
             {/* Survey header */}
             <div className="mb-8">
               <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                {data.form.title}
+                {data.survey.title}
               </div>
               <h1 className="font-serif text-3xl font-bold text-foreground">
                 {data.survey.title}
               </h1>
-              <p className="mt-3 text-muted-foreground leading-relaxed">{data.form.greeting}</p>
+              <p className="mt-3 text-muted-foreground leading-relaxed">{data.survey.description ?? ''}</p>
             </div>
 
             {/* Info form */}

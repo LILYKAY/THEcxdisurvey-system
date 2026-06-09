@@ -1,105 +1,54 @@
-import { DashboardShell, getOrgNav } from "@/components/DashboardShell";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { trpc } from "@/lib/trpc";
-import { Search, Users } from "lucide-react";
-import { useState } from "react";
 import { useParams, useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
+import DashboardLayout from "@/components/DashboardLayout";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Users } from "lucide-react";
 
 export default function OrgRespondents() {
   const { orgId } = useParams<{ orgId: string }>();
+  const orgIdNum = parseInt(orgId ?? "0");
   const [, navigate] = useLocation();
-  const nav = getOrgNav(orgId);
-  const { data: respondents, isLoading } = trpc.org.respondents.useQuery({
-    organizationId: Number(orgId),
-  });
-  const [search, setSearch] = useState("");
 
-  const filtered = respondents?.filter(
-    (r) =>
-      !search ||
-      r.name?.toLowerCase().includes(search.toLowerCase()) ||
-      r.email?.toLowerCase().includes(search.toLowerCase()) ||
-      r.company?.toLowerCase().includes(search.toLowerCase())
-  );
+  const { data: responses, isLoading } = trpc.org.responseFeed.useQuery({ organizationId: orgIdNum, limit: 50 });
+
+  const navItems = [
+    { label: "Dashboard", href: `/org/${orgId}` },
+    { label: "Surveys", href: `/org/${orgId}/surveys` },
+    { label: "Respondents", href: `/org/${orgId}/respondents`, active: true },
+  ];
 
   return (
-    <DashboardShell navItems={nav} title="Respondents">
-      <div className="p-6">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search respondents…"
-              className="pl-9"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <span className="text-sm text-muted-foreground">
-            {filtered?.length ?? 0} respondent{filtered?.length !== 1 ? "s" : ""}
-          </span>
-        </div>
-
+    <DashboardLayout navItems={navItems} title="Respondents">
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-gray-900">Respondents</h1>
         {isLoading ? (
-          <div className="space-y-3">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-12 animate-pulse rounded-lg bg-secondary" />
-            ))}
-          </div>
-        ) : filtered?.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Users className="mb-4 h-12 w-12 text-muted-foreground/40" />
-            <h3 className="font-semibold text-foreground">No respondents yet</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Share your survey links to start collecting responses.
-            </p>
-          </div>
+          <div className="text-center text-gray-500 py-8">Loading...</div>
+        ) : !responses?.length ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No responses yet</p>
+            </CardContent>
+          </Card>
         ) : (
-          <div className="rounded-xl border border-border bg-card shadow-elegant overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-secondary/30">
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Country</TableHead>
-                  <TableHead>Registered</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered?.map((r) => (
-                  <TableRow
-                    key={r.id}
-                    className="cursor-pointer hover:bg-secondary/20"
-                    onClick={() => navigate(`/org/${orgId}/respondents/${r.id}`)}
-                  >
-                    <TableCell className="font-medium">{r.name ?? "—"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{r.email ?? "—"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{r.company ?? "—"}</TableCell>
-                    <TableCell>
-                      {r.country ? (
-                        <Badge variant="secondary" className="text-xs">{r.country}</Badge>
-                      ) : "—"}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(r.createdAt).toLocaleDateString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="space-y-2">
+            {responses.map((r: any) => (
+              <Card key={r.id} className="hover:shadow-sm transition-shadow cursor-pointer" onClick={() => navigate(`/org/${orgId}/respondents/${r.id}`)}>
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Badge variant={r.isComplete ? "default" : "outline"} className={r.isComplete ? "bg-green-100 text-green-700 border-green-200" : ""}>{r.isComplete ? "Complete" : "Partial"}</Badge>
+                    {r.sentiment && <Badge variant="outline" className={`capitalize ${r.sentiment === "promoter" ? "text-green-600" : r.sentiment === "passive" ? "text-yellow-600" : "text-red-600"}`}>{r.sentiment}</Badge>}
+                    {r.npsScore !== null && <span className="text-sm text-gray-600">NPS: <strong>{r.npsScore}</strong></span>}
+                  </div>
+                  <span className="text-xs text-gray-400">{new Date(r.createdAt).toLocaleDateString()}</span>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
       </div>
-    </DashboardShell>
+    </DashboardLayout>
   );
 }

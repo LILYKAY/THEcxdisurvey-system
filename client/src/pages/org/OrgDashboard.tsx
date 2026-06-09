@@ -1,305 +1,174 @@
-import { DashboardShell, getOrgNav } from "@/components/DashboardShell";
+import { useParams, useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
+import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { trpc } from "@/lib/trpc";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import {
-  BarChart3,
-  CheckCircle2,
-  Copy,
-  ExternalLink,
-  Link2,
-  Settings2,
-  TrendingUp,
-  Users,
-} from "lucide-react";
-import { useMemo } from "react";
-import { useParams, useLocation } from "wouter";
-import { toast } from "sonner";
-
-const FORM_LABELS: Record<string, string> = {
-  current_customers: "Current Customers",
-  dropped_customers: "Dropped / Lapsed",
-  repeat_trial: "Repeat Trial",
-  single_trial: "Single Trial",
-};
-
-const FORM_COLORS: Record<string, string> = {
-  current_customers: "bg-indigo-50 text-indigo-700 border-indigo-100",
-  dropped_customers: "bg-amber-50 text-amber-700 border-amber-100",
-  repeat_trial: "bg-emerald-50 text-emerald-700 border-emerald-100",
-  single_trial: "bg-rose-50 text-rose-700 border-rose-100",
-};
-
-function MetricCard({
-  title,
-  value,
-  icon: Icon,
-  sub,
-}: {
-  title: string;
-  value: string | number;
-  icon: React.ElementType;
-  sub?: string;
-}) {
-  return (
-    <Card className="shadow-elegant border-border">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">{title}</p>
-            <p className="mt-1 text-3xl font-bold text-foreground">{value}</p>
-            {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
-          </div>
-          <div className="rounded-lg bg-primary/10 p-2.5 text-primary">
-            <Icon className="h-5 w-5" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+import { BarChart2, Users, FileText, Send, TrendingUp, Plus, Settings, Mail } from "lucide-react";
 
 export default function OrgDashboard() {
   const { orgId } = useParams<{ orgId: string }>();
+  const orgIdNum = parseInt(orgId ?? "0");
   const [, navigate] = useLocation();
-  const orgIdNum = Number(orgId);
-  const nav = getOrgNav(orgId);
 
-  const { data: org } = trpc.organizations.get.useQuery({ id: orgIdNum });
-  const { data: metrics } = trpc.org.overview.useQuery({ organizationId: orgIdNum });
-  const { data: trend } = trpc.org.responseTrend.useQuery({ organizationId: orgIdNum, days: 30 });
-  const { data: surveys } = trpc.surveys.listByOrg.useQuery({ organizationId: orgIdNum });
+  const { data: org } = trpc.org.get.useQuery({ id: orgIdNum });
+  const { data: metrics } = trpc.org.overviewMetrics.useQuery({ organizationId: orgIdNum });
+  const { data: surveys } = trpc.surveys.list.useQuery({ organizationId: orgIdNum });
+  const { data: feed } = trpc.org.responseFeed.useQuery({ organizationId: orgIdNum, limit: 5 });
 
-  const trendData = useMemo(() => {
-    if (!trend) return [];
-    return trend.map((row) => ({
-      date: new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      responses: Number(row.count),
-    }));
-  }, [trend]);
+  const navItems = [
+    { label: "Dashboard", href: `/org/${orgId}`, active: true },
+    { label: "Surveys", href: `/org/${orgId}/surveys` },
+    { label: "Contacts", href: `/org/${orgId}/contacts` },
+    { label: "Audiences", href: `/org/${orgId}/audiences` },
+    { label: "Respondents", href: `/org/${orgId}/respondents` },
+    { label: "Email Branding", href: `/org/${orgId}/branding` },
+    { label: "Settings", href: `/org/${orgId}/settings` },
+  ];
+
+  const activeSurveys = surveys?.filter((s) => s.status === "active") ?? [];
 
   return (
-    <DashboardShell navItems={nav} title={org?.name ?? "Organization Dashboard"}>
-      <div className="p-6 space-y-6">
-        {/* Metrics */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 stagger-children">
-          <MetricCard
-            title="Total Respondents"
-            value={metrics?.totalRespondents ?? 0}
-            icon={Users}
-          />
-          <MetricCard
-            title="Total Responses"
-            value={metrics?.totalResponses ?? 0}
-            icon={BarChart3}
-          />
-          <MetricCard
-            title="Completed"
-            value={metrics?.completedResponses ?? 0}
-            icon={CheckCircle2}
-          />
-          <MetricCard
-            title="Completion Rate"
-            value={`${metrics?.completionRate ?? 0}%`}
-            icon={TrendingUp}
-            sub={`${metrics?.totalSurveys ?? 0} active survey${metrics?.totalSurveys !== 1 ? "s" : ""}`}
-          />
+    <DashboardLayout navItems={navItems} title="Dashboard">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{org?.name ?? "Organisation Dashboard"}</h1>
+            <p className="text-sm text-gray-500 mt-1">{org?.industry ?? ""} {org?.country ? `· ${org.country}` : ""}</p>
+          </div>
+          <Button onClick={() => navigate(`/org/${orgId}/surveys`)} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Plus className="w-4 h-4 mr-2" /> New Survey
+          </Button>
         </div>
 
-        {/* Trend chart */}
-        <Card className="shadow-elegant border-border">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base font-semibold">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              Response Trend (Last 30 Days)
-            </CardTitle>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="w-4 h-4 text-blue-500" />
+                <span className="text-xs text-gray-500">Total Surveys</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{metrics?.totalSurveys ?? 0}</p>
+              <p className="text-xs text-green-600 mt-1">{activeSurveys.length} active</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="w-4 h-4 text-purple-500" />
+                <span className="text-xs text-gray-500">Total Responses</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{metrics?.totalResponses ?? 0}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <BarChart2 className="w-4 h-4 text-green-500" />
+                <span className="text-xs text-gray-500">Completion Rate</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{metrics?.completionRate ?? 0}%</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-4 h-4 text-orange-500" />
+                <span className="text-xs text-gray-500">Total Responses</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{metrics?.totalResponses ?? 0}</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Recent Surveys</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => navigate(`/org/${orgId}/surveys`)} className="text-blue-600 text-xs">View all</Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!surveys?.length ? (
+                <div className="text-center py-6">
+                  <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">No surveys yet</p>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate(`/org/${orgId}/surveys`)}>Create your first survey</Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {surveys.slice(0, 5).map((s) => (
+                    <div key={s.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/analytics`)}>
+                      <p className="text-sm font-medium text-gray-900 truncate flex-1">{s.title}</p>
+                      <div className="flex items-center gap-2 ml-2">
+                        <Badge variant="outline" className={`text-xs ${s.status === "active" ? "text-green-600 border-green-200 bg-green-50" : "text-gray-500"}`}>{s.status ?? "draft"}</Badge>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); navigate(`/org/${orgId}/surveys/${s.id}/send`); }}>
+                          <Send className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Recent Responses</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!feed?.length ? (
+                <div className="text-center py-6">
+                  <BarChart2 className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">No responses yet</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {feed.map((r: any) => (
+                    <div key={r.id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
+                      <div className="flex items-center gap-2">
+                        {r.sentiment && (
+                          <Badge variant="outline" className={`text-xs capitalize ${r.sentiment === "promoter" ? "text-green-600 border-green-200" : r.sentiment === "passive" ? "text-yellow-600 border-yellow-200" : "text-red-600 border-red-200"}`}>{r.sentiment}</Badge>
+                        )}
+                        {r.npsScore !== null && <span className="text-sm font-medium">NPS: {r.npsScore}</span>}
+                      </div>
+                      <span className="text-xs text-gray-400">{new Date(r.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            {trendData.length === 0 ? (
-              <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-                No responses recorded yet
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={200} debounce={100}>
-                <AreaChart data={trendData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorOrgResp" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.005 260)" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "white",
-                      border: "1px solid oklch(0.9 0.005 260)",
-                      borderRadius: "8px",
-                      fontSize: 12,
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="responses"
-                    stroke="#4f46e5"
-                    strokeWidth={2}
-                    fill="url(#colorOrgResp)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Button variant="outline" className="h-auto py-3 flex-col gap-1" onClick={() => navigate(`/org/${orgId}/surveys`)}>
+                <FileText className="w-5 h-5 text-blue-500" />
+                <span className="text-xs">New Survey</span>
+              </Button>
+              <Button variant="outline" className="h-auto py-3 flex-col gap-1" onClick={() => navigate(`/org/${orgId}/contacts`)}>
+                <Users className="w-5 h-5 text-purple-500" />
+                <span className="text-xs">Add Contacts</span>
+              </Button>
+              <Button variant="outline" className="h-auto py-3 flex-col gap-1" onClick={() => navigate(`/org/${orgId}/branding`)}>
+                <Mail className="w-5 h-5 text-green-500" />
+                <span className="text-xs">Email Branding</span>
+              </Button>
+              <Button variant="outline" className="h-auto py-3 flex-col gap-1" onClick={() => navigate(`/org/${orgId}/settings`)}>
+                <Settings className="w-5 h-5 text-gray-500" />
+                <span className="text-xs">Settings</span>
+              </Button>
+            </div>
           </CardContent>
         </Card>
-
-        {/* Survey forms */}
-        <div>
-          <h2 className="mb-4 font-semibold text-foreground">Survey Forms</h2>
-          {!surveys || surveys.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border p-10 text-center">
-              <BarChart3 className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-              <p className="text-sm font-medium text-foreground">No surveys provisioned yet</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Ask an admin to provision surveys for your organization.
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 stagger-children">
-              {surveys.map((survey) => (
-                <SurveyCard
-                  key={survey.id}
-                  survey={survey}
-                  orgId={orgIdNum}
-                  onViewInsights={() =>
-                    navigate(`/org/${orgId}/surveys/${survey.id}/insights`)
-                  }
-                  onCustomizeQuestions={() =>
-                    navigate(`/org/${orgId}/surveys/${survey.id}/questions`)
-                  }
-                />
-              ))}
-            </div>
-          )}
-        </div>
       </div>
-    </DashboardShell>
-  );
-}
-
-function SurveyCard({
-  survey,
-  orgId,
-  onViewInsights,
-  onCustomizeQuestions,
-}: {
-  survey: { id: number; formKey: string; title: string; isActive: boolean };
-  orgId: number;
-  onViewInsights: () => void;
-  onCustomizeQuestions: () => void;
-}) {
-  const { data: links } = trpc.surveys.getLinks.useQuery({ surveyId: survey.id });
-  const utils = trpc.useUtils();
-  const createLink = trpc.surveys.createLink.useMutation({
-    onSuccess: () => {
-      toast.success("New survey link created");
-      utils.surveys.getLinks.invalidate({ surveyId: survey.id });
-    },
-  });
-
-  const activeLink = links?.find((l) => l.isActive);
-  const surveyUrl = activeLink
-    ? `${window.location.origin}/s/${activeLink.token}`
-    : null;
-
-  const copyLink = () => {
-    if (surveyUrl) {
-      navigator.clipboard.writeText(surveyUrl);
-      toast.success("Link copied to clipboard");
-    }
-  };
-
-  return (
-    <Card className="shadow-elegant border-border hover:shadow-elegant-lg transition-shadow">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-3">
-          <Badge
-            variant="outline"
-            className={`text-xs ${FORM_COLORS[survey.formKey] ?? ""}`}
-          >
-            {FORM_LABELS[survey.formKey] ?? survey.formKey}
-          </Badge>
-          {survey.isActive ? (
-            <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 text-xs">Active</Badge>
-          ) : (
-            <Badge variant="secondary" className="text-xs">Inactive</Badge>
-          )}
-        </div>
-        <h3 className="font-semibold text-foreground mb-3">{survey.title}</h3>
-
-        {/* Shareable link */}
-        {surveyUrl ? (
-          <div className="flex items-center gap-2 rounded-lg bg-secondary/50 px-3 py-2 mb-3">
-            <Link2 className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
-            <span className="flex-1 truncate text-xs text-muted-foreground font-mono">
-              /s/{activeLink?.token?.slice(0, 16)}…
-            </span>
-            <button onClick={copyLink} className="text-primary hover:text-primary/80 transition-colors">
-              <Copy className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        ) : (
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-full mb-3 gap-1.5 text-xs"
-            onClick={() => createLink.mutate({ surveyId: survey.id })}
-          >
-            <Link2 className="h-3.5 w-3.5" />
-            Generate Link
-          </Button>
-        )}
-
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1 gap-1.5 text-xs"
-            onClick={onViewInsights}
-          >
-            <BarChart3 className="h-3.5 w-3.5" />
-            View Insights
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5 text-xs"
-            onClick={onCustomizeQuestions}
-          >
-            <Settings2 className="h-3.5 w-3.5" />
-            Customize
-          </Button>
-          {surveyUrl && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5 text-xs"
-              onClick={() => window.open(surveyUrl, "_blank")}
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+    </DashboardLayout>
   );
 }

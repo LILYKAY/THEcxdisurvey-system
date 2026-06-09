@@ -1,7 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { SURVEY_FORMS } from "../shared/surveyForms";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { sdk } from "./_core/sdk";
@@ -9,13 +8,26 @@ import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import bcrypt from "bcryptjs";
 import {
+  addContactsToAudience,
+  bulkCreateContacts,
   completeSurveyResponse,
+  countContactsByOrg,
+  countAudienceContacts,
+  createAudience,
+  createContact,
+  createMfaOtp,
   createOrganization,
   createRespondent,
-  createSurvey,
+  createSurveyInvitation,
   createSurveyLink,
+  createSurveyQuestion,
+  createSurveyRecord,
   createSurveyResponse,
+  createPasswordResetToken,
   deactivateSurveyLink,
+  deleteAudience,
+  deleteContact,
+  deleteSurveyQuestion,
   getAdminOverviewMetrics,
   getAllOrganizations,
   getAllRespondents,
@@ -23,50 +35,58 @@ import {
   getAllSurveys,
   getAllSurveysWithStats,
   getAllUsers,
-  getUserByEmail,
-  getAnswerHistory,
   getAnswersByResponse,
-  getFullAnswerHistoryByResponse,
+  getAudienceContacts,
+  getAudiencesByOrg,
+  getContactsByOrg,
+  getEmailBranding,
+  getInvitationByToken,
+  getInvitationsByOrg,
+  getMfaSettings,
   getOrganizationById,
   getOrganizationsByOwner,
+  getOrgNpsSummary,
   getOrgOverviewMetrics,
+  getOrgResponseFeed,
   getOrgResponseTrend,
+  getPasswordResetToken,
   getRespondentById,
   getRespondentsByOrg,
-  getResponsesByFormKey,
   getResponseTrend,
   getSurveyById,
   getSurveyLinkByToken,
   getSurveyLinksBySurvey,
+  getSurveyQuestions,
   getSurveyResponseById,
   getSurveyResponsesByOrg,
-  getSurveyResponsesByRespondent,
   getSurveyResponsesBySurvey,
   getSurveysByOrg,
+  getUserByEmail,
+  getUserById,
+  markInvitationFailed,
+  markResetTokenUsed,
+  removeContactFromAudience,
+  reorderSurveyQuestions,
+  setOrganizationRestriction,
+  updateContact,
+  updateInvitationSentStatus,
+  updateInvitationStatus,
   updateOrganization,
+  updateSurvey,
+  updateSurveyQuestion,
+  updateUserPassword,
+  updateUserProfile,
   updateUserRole,
+  upsertEmailBranding,
+  upsertMfaSettings,
   upsertResponseAnswer,
   upsertUser,
+  verifyMfaOtp,
   countUsers,
-  createSurveyInvitation,
-  getInvitationByToken,
-  getInvitationsByOrg,
-  updateInvitationStatus,
-  updateInvitationSentStatus,
-  markInvitationFailed,
-  getCustomQuestions,
-  createCustomQuestion,
-  updateCustomQuestion,
-  deleteCustomQuestion,
-  createPasswordResetToken,
-  getPasswordResetToken,
-  markResetTokenUsed,
-  updateUserPassword,
 } from "./db";
 import { sendSurveyInvitationEmail, sendReportEmail, sendPasswordResetEmail } from "./email";
 import { generatePdfFromHtml, buildSurveyReportHtml } from "./pdf";
 
-// ─── Password helpers ─────────────────────────────────────────────────────────
 async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
 }
@@ -74,1004 +94,577 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
   return bcrypt.compare(password, hash);
 }
 
-// ─── Admin guard ──────────────────────────────────────────────────────────────
-
 const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== "admin") {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
-  }
+  if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required" });
   return next({ ctx });
 });
 
-// ─── Org owner guard ──────────────────────────────────────────────────────────
-
 const orgOwnerProcedure = protectedProcedure.use(({ ctx, next }) => {
-  if (ctx.user.role !== "admin" && ctx.user.role !== "org_owner") {
+  if (ctx.user.role !== "org_owner" && ctx.user.role !== "admin") {
     throw new TRPCError({ code: "FORBIDDEN", message: "Organization owner access required" });
   }
   return next({ ctx });
 });
 
-// ─── Router ───────────────────────────────────────────────────────────────────
-
 export const appRouter = router({
   system: systemRouter,
 
   auth: router({
-    me: publicProcedure.query((opts) => opts.ctx.user),
+    me: publicProcedure.query(({ ctx }) => ctx.user ?? null),
 
     register: publicProcedure
-      .input(
-        z.object({
-          name: z.string().min(2, "Name must be at least 2 characters"),
-          email: z.string().email("Invalid email address"),
-          password: z.string().min(8, "Password must be at least 8 characters"),
-        })
-      )
+      .input(z.object({ name: z.string().min(1), email: z.string().email(), password: z.string().min(8) }))
       .mutation(async ({ input, ctx }) => {
-        const { name, email, password } = input;
-        const existing = await getUserByEmail(email);
-        if (existing) {
-          throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists" });
-        }
-        const hash = await hashPassword(password);
-        const openId = `local_${nanoid(24)}`;
-        // The very first registered user automatically becomes admin
-        const totalUsers = await countUsers();
-        const role = totalUsers === 0 ? "admin" : "user";
-        await upsertUser({
-          openId,
-          name,
-          email,
-          loginMethod: "email",
-          passwordHash: hash,
-          role,
-          lastSignedIn: new Date(),
-        });
-        const user = await getUserByEmail(email);
+        const existing = await getUserByEmail(input.email);
+        if (existing) throw new TRPCError({ code: "CONFLICT", message: "Email already in use" });
+        const isFirstUser = (await countUsers()) === 0;
+        const passwordHash = await hashPassword(input.password);
+        const openId = `local_${nanoid(16)}`;
+        await upsertUser({ openId, name: input.name, email: input.email, passwordHash, loginMethod: "email", role: isFirstUser ? "admin" : "user", lastSignedIn: new Date() });
+        const user = await getUserByEmail(input.email);
         if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         const token = await sdk.createSessionToken(user.openId, { name: user.name ?? "" });
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS / 1000 });
-        return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+        return { user };
       }),
 
     login: publicProcedure
-      .input(
-        z.object({
-          email: z.string().email("Invalid email address"),
-          password: z.string().min(1, "Password is required"),
-        })
-      )
+      .input(z.object({ email: z.string().email(), password: z.string() }))
       .mutation(async ({ input, ctx }) => {
-        const { email, password } = input;
-        const user = await getUserByEmail(email);
-        if (!user || !user.passwordHash) {
-          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
-        }
-        const valid = await verifyPassword(password, user.passwordHash);
-        if (!valid) {
-          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
-        }
+        const user = await getUserByEmail(input.email);
+        if (!user || !user.passwordHash) throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+        const valid = await verifyPassword(input.password, user.passwordHash);
+        if (!valid) throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
         await upsertUser({ openId: user.openId, lastSignedIn: new Date() });
         const token = await sdk.createSessionToken(user.openId, { name: user.name ?? "" });
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS / 1000 });
-        return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+        return { user };
       }),
 
-    logout: publicProcedure.mutation(({ ctx }) => {
+    logout: protectedProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return { success: true } as const;
+      return { success: true };
     }),
 
-    // Forgot password: generate reset token and send email
     forgotPassword: publicProcedure
       .input(z.object({ email: z.string().email(), origin: z.string().url() }))
       .mutation(async ({ input }) => {
-        const { email, origin } = input;
-        // Always return success to prevent email enumeration
-        const user = await getUserByEmail(email);
+        const user = await getUserByEmail(input.email);
         if (!user) return { success: true };
         const token = nanoid(48);
-        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        const expiresAt = new Date(Date.now() + 3600000);
         await createPasswordResetToken(user.id, token, expiresAt);
-        const resetUrl = `${origin}/reset-password?token=${token}`;
-        await sendPasswordResetEmail({ to: email, name: user.name ?? "", resetUrl });
+        const resetUrl = `${input.origin}/reset-password?token=${token}`;
+        await sendPasswordResetEmail({ to: user.email!, name: user.name ?? "User", resetUrl });
         return { success: true };
       }),
 
-    // Reset password: verify token and update password hash
     resetPassword: publicProcedure
-      .input(z.object({ token: z.string().min(1), password: z.string().min(8, "Password must be at least 8 characters") }))
+      .input(z.object({ token: z.string(), newPassword: z.string().min(8) }))
       .mutation(async ({ input }) => {
         const record = await getPasswordResetToken(input.token);
-        if (!record) throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid or expired reset link" });
-        if (record.usedAt) throw new TRPCError({ code: "BAD_REQUEST", message: "This reset link has already been used" });
-        if (record.expiresAt < new Date()) throw new TRPCError({ code: "BAD_REQUEST", message: "This reset link has expired. Please request a new one." });
-        const hash = await hashPassword(input.password);
-        await updateUserPassword(record.userId, hash);
+        if (!record || record.usedAt || record.expiresAt < new Date()) throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid or expired reset token" });
+        const passwordHash = await hashPassword(input.newPassword);
+        await updateUserPassword(record.userId, passwordHash);
         await markResetTokenUsed(record.id);
         return { success: true };
       }),
+
+    updateProfile: protectedProcedure
+      .input(z.object({ name: z.string().min(1).optional(), email: z.string().email().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        await updateUserProfile(ctx.user.id, input);
+        return { success: true };
+      }),
+
+    updatePassword: protectedProcedure
+      .input(z.object({ currentPassword: z.string(), newPassword: z.string().min(8) }))
+      .mutation(async ({ input, ctx }) => {
+        const user = await getUserById(ctx.user.id);
+        if (!user?.passwordHash) throw new TRPCError({ code: "BAD_REQUEST", message: "No password set" });
+        const valid = await verifyPassword(input.currentPassword, user.passwordHash);
+        if (!valid) throw new TRPCError({ code: "UNAUTHORIZED", message: "Current password is incorrect" });
+        const passwordHash = await hashPassword(input.newPassword);
+        await updateUserPassword(ctx.user.id, passwordHash);
+        return { success: true };
+      }),
   }),
 
-  // ─── Survey Forms (public definitions) ──────────────────────────────────────
-
-  forms: router({
-    list: publicProcedure.query(() => {
-      return Object.values(SURVEY_FORMS).map((f) => ({
-        formKey: f.formKey,
-        title: f.title,
-        audience: f.audience,
-        questionCount: f.questions.length,
-      }));
+  mfa: router({
+    getSettings: protectedProcedure.query(async ({ ctx }) => {
+      const settings = await getMfaSettings(ctx.user.id);
+      return settings ?? { mfaEnabled: false };
     }),
-
-    get: publicProcedure
-      .input(z.object({ formKey: z.string() }))
-      .query(({ input }) => {
-        const form = SURVEY_FORMS[input.formKey];
-        if (!form) throw new TRPCError({ code: "NOT_FOUND", message: "Form not found" });
-        return form;
-      }),
+    toggle: protectedProcedure.input(z.object({ enabled: z.boolean() })).mutation(async ({ input, ctx }) => {
+      await upsertMfaSettings(ctx.user.id, input.enabled);
+      return { success: true };
+    }),
+    sendOtp: protectedProcedure.mutation(async ({ ctx }) => {
+      const user = await getUserById(ctx.user.id);
+      if (!user?.email) throw new TRPCError({ code: "BAD_REQUEST", message: "No email on account" });
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 600000);
+      await createMfaOtp(ctx.user.id, code, expiresAt);
+      await sendPasswordResetEmail({ to: user.email, name: user.name ?? "User", resetUrl: `Your OTP code: ${code}` });
+      return { success: true };
+    }),
+    verifyOtp: protectedProcedure.input(z.object({ code: z.string().length(6) })).mutation(async ({ input, ctx }) => {
+      const valid = await verifyMfaOtp(ctx.user.id, input.code);
+      if (!valid) throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid or expired OTP code" });
+      return { success: true };
+    }),
   }),
 
-  // ─── Organizations ───────────────────────────────────────────────────────────
-
-  organizations: router({
-    list: adminProcedure.query(() => getAllOrganizations()),
-
-    myOrgs: orgOwnerProcedure.query(({ ctx }) => getOrganizationsByOwner(ctx.user.id)),
-
-    get: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .query(async ({ input, ctx }) => {
-        const org = await getOrganizationById(input.id);
-        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        return org;
-      }),
-
-    create: orgOwnerProcedure
-      .input(
-        z.object({
-          name: z.string().min(2),
-          slug: z.string().min(2).regex(/^[a-z0-9-]+$/),
-          description: z.string().optional(),
-          industry: z.string().optional(),
-          country: z.string().optional(),
-        })
-      )
+  org: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role === "admin") return getAllOrganizations();
+      return getOrganizationsByOwner(ctx.user.id);
+    }),
+    get: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ input, ctx }) => {
+      const org = await getOrganizationById(input.id);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return org;
+    }),
+    create: protectedProcedure
+      .input(z.object({ name: z.string().min(1), slug: z.string().min(1), description: z.string().optional(), industry: z.string().optional(), country: z.string().optional() }))
       .mutation(async ({ input, ctx }) => {
         const org = await createOrganization({ ...input, ownerId: ctx.user.id });
-        // Auto-provision all 4 survey forms immediately on org creation
-        const formKeys = ["current_customers", "dropped_customers", "repeat_trial", "single_trial"] as const;
-        const titles: Record<string, string> = {
-          current_customers: "Current Customers Survey",
-          dropped_customers: "Dropped / Lapsed Customers Survey",
-          repeat_trial: "Repeat Trial Firms Survey",
-          single_trial: "Single-Trial Firms Survey",
-        };
-        for (const formKey of formKeys) {
-          const survey = await createSurvey({
-            organizationId: org.id,
-            formKey,
-            title: titles[formKey]!,
-          });
-          const token = nanoid(32);
-          await createSurveyLink({ surveyId: survey.id, token, label: "Default Link" });
-        }
+        await updateUserRole(ctx.user.id, "org_owner");
         return org;
       }),
-
-    update: orgOwnerProcedure
-      .input(
-        z.object({
-          id: z.number(),
-          name: z.string().min(2).optional(),
-          description: z.string().optional(),
-          industry: z.string().optional(),
-          country: z.string().optional(),
-        })
-      )
+    update: protectedProcedure
+      .input(z.object({ id: z.number(), name: z.string().optional(), description: z.string().optional(), industry: z.string().optional(), country: z.string().optional() }))
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.id);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
         const { id, ...data } = input;
         await updateOrganization(id, data);
         return { success: true };
       }),
+    overviewMetrics: protectedProcedure.input(z.object({ organizationId: z.number() })).query(async ({ input, ctx }) => {
+      const org = await getOrganizationById(input.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return getOrgOverviewMetrics(input.organizationId);
+    }),
+    responseTrend: protectedProcedure.input(z.object({ organizationId: z.number(), days: z.number().optional() })).query(async ({ input, ctx }) => {
+      const org = await getOrganizationById(input.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return getOrgResponseTrend(input.organizationId, input.days);
+    }),
+    npsSummary: protectedProcedure.input(z.object({ organizationId: z.number() })).query(async ({ input, ctx }) => {
+      const org = await getOrganizationById(input.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return getOrgNpsSummary(input.organizationId);
+    }),
+    responseFeed: protectedProcedure.input(z.object({ organizationId: z.number(), limit: z.number().optional() })).query(async ({ input, ctx }) => {
+      const org = await getOrganizationById(input.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return getOrgResponseFeed(input.organizationId, input.limit);
+    }),
+    invitations: protectedProcedure.input(z.object({ organizationId: z.number() })).query(async ({ input, ctx }) => {
+      const org = await getOrganizationById(input.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return getInvitationsByOrg(input.organizationId);
+    }),
+  }),
 
-    // Admin: provision all 4 surveys for an org
-    provisionSurveys: adminProcedure
-      .input(z.object({ organizationId: z.number() }))
-      .mutation(async ({ input }) => {
-        const formKeys = ["current_customers", "dropped_customers", "repeat_trial", "single_trial"] as const;
-        const titles: Record<string, string> = {
-          current_customers: "Current Customers Survey",
-          dropped_customers: "Dropped / Lapsed Customers Survey",
-          repeat_trial: "Repeat Trial Firms Survey",
-          single_trial: "Single-Trial Firms Survey",
-        };
-        const created = [];
-        for (const formKey of formKeys) {
-          const survey = await createSurvey({
-            organizationId: input.organizationId,
-            formKey,
-            title: titles[formKey]!,
-          });
-          // Auto-generate a shareable link for each survey
-          const token = nanoid(32);
-          await createSurveyLink({ surveyId: survey.id, token, label: "Default Link" });
-          created.push(survey);
-        }
-        return created;
+  branding: router({
+    get: protectedProcedure.input(z.object({ organizationId: z.number() })).query(async ({ input, ctx }) => {
+      const org = await getOrganizationById(input.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return getEmailBranding(input.organizationId);
+    }),
+    upsert: protectedProcedure
+      .input(z.object({ organizationId: z.number(), logoUrl: z.string().optional(), primaryColor: z.string().optional(), secondaryColor: z.string().optional(), signatureTag: z.string().optional(), usePlatformBranding: z.boolean().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        await upsertEmailBranding(input);
+        return { success: true };
       }),
   }),
 
-  // ─── Surveys ─────────────────────────────────────────────────────────────────
-
-  surveys: router({
-    listByOrg: protectedProcedure
-      .input(z.object({ organizationId: z.number() }))
-      .query(async ({ input, ctx }) => {
-        const org = await getOrganizationById(input.organizationId);
-        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        return getSurveysByOrg(input.organizationId);
-      }),
-
-    listAll: adminProcedure.query(() => getAllSurveys()),
-    listAllWithStats: adminProcedure.query(() => getAllSurveysWithStats()),
-
-    get: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .query(async ({ input, ctx }) => {
-        const survey = await getSurveyById(input.id);
-        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
-        const org = await getOrganizationById(survey.organizationId);
-        if (ctx.user.role !== "admin" && org?.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        return survey;
-      }),
-
-    getLinks: protectedProcedure
-      .input(z.object({ surveyId: z.number() }))
-      .query(async ({ input, ctx }) => {
-        const survey = await getSurveyById(input.surveyId);
-        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
-        const org = await getOrganizationById(survey.organizationId);
-        if (ctx.user.role !== "admin" && org?.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        return getSurveyLinksBySurvey(input.surveyId);
-      }),
-
-    createLink: orgOwnerProcedure
-      .input(z.object({ surveyId: z.number(), label: z.string().optional() }))
-      .mutation(async ({ input, ctx }) => {
-        const survey = await getSurveyById(input.surveyId);
-        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
-        const org = await getOrganizationById(survey.organizationId);
-        if (ctx.user.role !== "admin" && org?.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        const token = nanoid(32);
-        return createSurveyLink({ surveyId: input.surveyId, token, label: input.label ?? "Link" });
-      }),
-
-    deactivateLink: orgOwnerProcedure
-      .input(z.object({ linkId: z.number() }))
-      .mutation(async ({ input }) => {
-        await deactivateSurveyLink(input.linkId);
-        return { success: true };
-      }),
-
-    // Insights: aggregated answer data for charts
-    insights: protectedProcedure
-      .input(z.object({ surveyId: z.number() }))
-      .query(async ({ input, ctx }) => {
-        const survey = await getSurveyById(input.surveyId);
-        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
-        const org = await getOrganizationById(survey.organizationId);
-        if (ctx.user.role !== "admin" && org?.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-
-        const form = SURVEY_FORMS[survey.formKey];
-        if (!form) throw new TRPCError({ code: "NOT_FOUND" });
-
-        const responses = await getSurveyResponsesBySurvey(input.surveyId);
-        const allAnswers = await Promise.all(
-          responses.map((r) => getAnswersByResponse(r.id))
-        );
-        const flat = allAnswers.flat();
-
-        // Build aggregated data per question
-        const insights = form.questions.map((q) => {
-          const answers = flat.filter((a) => a.questionKey === q.key);
-          if (q.type === "open_ended") {
-            return {
-              questionKey: q.key,
-              questionText: q.text,
-              type: q.type,
-              responses: answers.map((a) => ({ value: a.value as string, version: a.version })),
-            };
-          }
-          // Aggregate counts for choice/checkbox questions
-          const counts: Record<string, number> = {};
-          for (const a of answers) {
-            const val = a.value;
-            if (Array.isArray(val)) {
-              for (const v of val) counts[v] = (counts[v] ?? 0) + 1;
-            } else if (typeof val === "string") {
-              counts[val] = (counts[val] ?? 0) + 1;
-            }
-          }
-          const options = (q.options ?? []).map((opt) => ({
-            value: opt.value,
-            label: opt.label,
-            count: counts[opt.value] ?? 0,
-          }));
-          return {
-            questionKey: q.key,
-            questionText: q.text,
-            type: q.type,
-            options,
-            totalAnswers: answers.length,
-          };
-        });
-
-        return { survey, form, insights, totalResponses: responses.length };
-      }),
-
-    // CSV export
-    exportCsv: protectedProcedure
-      .input(z.object({ surveyId: z.number() }))
-      .query(async ({ input, ctx }) => {
-        const survey = await getSurveyById(input.surveyId);
-        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
-        const org = await getOrganizationById(survey.organizationId);
-        if (ctx.user.role !== "admin" && org?.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-
-        const form = SURVEY_FORMS[survey.formKey];
-        if (!form) throw new TRPCError({ code: "NOT_FOUND" });
-
-        const responses = await getSurveyResponsesBySurvey(input.surveyId);
-        const rows: string[][] = [];
-
-        // Header
-        const header = [
-          "response_id",
-          "respondent_name",
-          "respondent_email",
-          "respondent_company",
-          "status",
-          "started_at",
-          "completed_at",
-          ...form.questions.map((q) => `q${q.number}_${q.key}`),
-        ];
-        rows.push(header);
-
-        for (const resp of responses) {
-          const respondent = await getRespondentById(resp.respondentId);
-          const answers = await getAnswersByResponse(resp.id);
-          const answerMap: Record<string, unknown> = {};
-          for (const a of answers) answerMap[a.questionKey] = a.value;
-
-          const row = [
-            String(resp.id),
-            respondent?.name ?? "",
-            respondent?.email ?? "",
-            respondent?.company ?? "",
-            resp.status,
-            resp.startedAt.toISOString(),
-            resp.completedAt?.toISOString() ?? "",
-            ...form.questions.map((q) => {
-              const val = answerMap[q.key];
-              if (Array.isArray(val)) return val.join("; ");
-              return String(val ?? "");
-            }),
-          ];
-          rows.push(row);
-        }
-
-        const csv = rows
-          .map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(","))
-          .join("\n");
-
-                return { csv, filename: `${survey.formKey}_responses.csv` };
-      }),
-
-    // PDF export — returns base64-encoded PDF
-    exportPdf: protectedProcedure
-      .input(z.object({ surveyId: z.number() }))
-      .query(async ({ input, ctx }) => {
-        const survey = await getSurveyById(input.surveyId);
-        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
-        const org = await getOrganizationById(survey.organizationId);
-        if (ctx.user.role !== "admin" && org?.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        const form = SURVEY_FORMS[survey.formKey];
-        if (!form) throw new TRPCError({ code: "NOT_FOUND" });
-        const responses = await getSurveyResponsesBySurvey(input.surveyId);
-        const completed = responses.filter((r) => r.status === "completed");
-        const completionRate = responses.length > 0 ? Math.round((completed.length / responses.length) * 100) : 0;
-        const allAnswers = await Promise.all(responses.map((r) => getAnswersByResponse(r.id)));
-        const flat = allAnswers.flat();
-        const questionInsights = form.questions.map((q) => {
-          const answers = flat.filter((a) => a.questionKey === q.key);
-          if (q.type === "open_ended") {
-            return { questionKey: q.key, questionText: q.text, questionType: q.type, totalAnswers: answers.length, openEndedResponses: answers.map((a) => String(a.value ?? "")) };
-          }
-          const counts: Record<string, number> = {};
-          for (const a of answers) {
-            const val = a.value;
-            if (Array.isArray(val)) { for (const v of val) counts[v] = (counts[v] ?? 0) + 1; }
-            else if (typeof val === "string") counts[val] = (counts[val] ?? 0) + 1;
-          }
-          const total = Object.values(counts).reduce((s, c) => s + c, 0);
-          const choiceBreakdown = (q.options ?? []).map((opt) => ({ option: opt.label, count: counts[opt.value] ?? 0, percentage: total > 0 ? Math.round(((counts[opt.value] ?? 0) / total) * 100) : 0 }));
-          return { questionKey: q.key, questionText: q.text, questionType: q.type, totalAnswers: answers.length, choiceBreakdown };
-        });
-        const html = buildSurveyReportHtml({ orgName: org?.name ?? "Organization", surveyTitle: survey.title, formKey: survey.formKey, generatedAt: new Date(), stats: { totalResponses: responses.length, completedResponses: completed.length, completionRate }, questionInsights });
-        const pdfBuffer = await generatePdfFromHtml(html);
-        const filename = `${org?.slug ?? "org"}-${survey.formKey}-report-${new Date().toISOString().slice(0, 10)}.pdf`;
-        return { pdf: pdfBuffer.toString("base64"), filename };
-      }),
-  }),
-  // ─── Public Survey Submission ─────────────────────────────────────────────────
-
-  public: router({
-    // Resolve a survey link token → return survey + form definition
-    resolveSurveyLink: publicProcedure
-      .input(z.object({ token: z.string(), inviteToken: z.string().optional() }))
-      .query(async ({ input }) => {
-        const link = await getSurveyLinkByToken(input.token);
-        if (!link) throw new TRPCError({ code: "NOT_FOUND", message: "Survey link not found or expired" });
-
-        const survey = await getSurveyById(link.surveyId);
-        if (!survey || !survey.isActive) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Survey not found or inactive" });
-        }
-
-        const form = SURVEY_FORMS[survey.formKey];
-        if (!form) throw new TRPCError({ code: "NOT_FOUND" });
-
-        const org = await getOrganizationById(survey.organizationId);
-
-        // If an invite token is present, prefill respondent info and mark as opened
-        let invitation = null;
-        if (input.inviteToken) {
-          invitation = await getInvitationByToken(input.inviteToken);
-          if (invitation && invitation.status === "sent") {
-            await updateInvitationStatus(input.inviteToken, "opened", { openedAt: new Date() });
-          }
-        }
-
-        // Load org custom questions
-        const customQs = await getCustomQuestions(survey.id, survey.organizationId);
-
-        return {
-          link,
-          survey,
-          form,
-          organization: org,
-          invitation: invitation ? {
-            recipientName: invitation.recipientName,
-            recipientEmail: invitation.recipientEmail,
-            inviteToken: invitation.inviteToken,
-          } : null,
-          customQuestions: customQs,
-        };
-      }),
-
-    // Mark invitation as opened (called when respondent opens the survey page)
-    markInvitationOpened: publicProcedure
-      .input(z.object({ inviteToken: z.string() }))
-      .mutation(async ({ input }) => {
-        const invitation = await getInvitationByToken(input.inviteToken);
-        if (!invitation) return { success: false };
-        if (invitation.status === "sent") {
-          await updateInvitationStatus(input.inviteToken, "opened", { openedAt: new Date() });
-        }
-        return { success: true };
-      }),
-
-    // Start or resume a survey session
-    startResponse: publicProcedure
-      .input(
-        z.object({
-          token: z.string(),
-          name: z.string().optional(),
-          email: z.string().email().optional(),
-          company: z.string().optional(),
-          country: z.string().optional(),
-          inviteToken: z.string().optional(),
-        })
-      )
-      .mutation(async ({ input }) => {
-        const link = await getSurveyLinkByToken(input.token);
-        if (!link) throw new TRPCError({ code: "NOT_FOUND" });
-
-        const survey = await getSurveyById(link.surveyId);
-        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
-
-        // Create or find respondent by email
-        let respondent;
-        if (input.email) {
-          const existing = await getRespondentsByOrg(survey.organizationId);
-          respondent = existing.find((r) => r.email === input.email);
-        }
-
-        if (!respondent) {
-          respondent = await createRespondent({
-            organizationId: survey.organizationId,
-            name: input.name,
-            email: input.email,
-            company: input.company,
-            country: input.country,
-          });
-        }
-
-        // Create a new response session
-        const response = await createSurveyResponse({
-          surveyId: survey.id,
-          surveyLinkId: link.id,
-          respondentId: respondent.id,
-          organizationId: survey.organizationId,
-        });
-
-        return { responseId: response.id, respondentId: respondent.id, inviteToken: input.inviteToken };
-      }),
-
-    // Save answers (can be called multiple times — immutable history preserved)
-    saveAnswers: publicProcedure
-      .input(
-        z.object({
-          responseId: z.number(),
-          answers: z.array(
-            z.object({
-              questionKey: z.string(),
-              value: z.union([z.string(), z.array(z.string()), z.null()]),
-            })
-          ),
-          complete: z.boolean().default(false),
-          inviteToken: z.string().optional(),
-        })
-      )
-      .mutation(async ({ input }) => {
-        const response = await getSurveyResponseById(input.responseId);
-        if (!response) throw new TRPCError({ code: "NOT_FOUND" });
-
-        for (const answer of input.answers) {
-          await upsertResponseAnswer(input.responseId, answer.questionKey, answer.value);
-        }
-
-        if (input.complete) {
-          await completeSurveyResponse(input.responseId);
-          // Mark any linked invitation as completed
-          if (input.inviteToken) {
-            await updateInvitationStatus(input.inviteToken, "completed", { completedAt: new Date() });
-          }
-        }
-
-        return { success: true };
-      }),
-
-    // Get existing answers for a response (for resuming)
-    getAnswers: publicProcedure
-      .input(z.object({ responseId: z.number() }))
-      .query(async ({ input }) => {
-        return getAnswersByResponse(input.responseId);
-      }),
-  }),
-
-  // ─── Admin ────────────────────────────────────────────────────────────────────
-
-  admin: router({
-    overview: adminProcedure.query(() => getAdminOverviewMetrics()),
-
-    responseTrend: adminProcedure
-      .input(z.object({ days: z.number().default(30) }))
-      .query(({ input }) => getResponseTrend(input.days)),
-
-    responsesByForm: adminProcedure.query(() => getResponsesByFormKey()),
-
-    allUsers: adminProcedure.query(() => getAllUsers()),
-
-    updateUserRole: adminProcedure
-      .input(
-        z.object({
-          userId: z.number(),
-          role: z.enum(["user", "admin", "org_owner"]),
-        })
-      )
-      .mutation(async ({ input }) => {
-        await updateUserRole(input.userId, input.role);
-        return { success: true };
-      }),
-
-    allOrganizations: adminProcedure.query(() => getAllOrganizations()),
-
-    allRespondents: adminProcedure.query(() => getAllRespondents()),
-
-    allResponses: adminProcedure.query(() => getAllSurveyResponses()),
-
-    respondentDetail: adminProcedure
-      .input(z.object({ respondentId: z.number() }))
-      .query(async ({ input }) => {
-        const respondent = await getRespondentById(input.respondentId);
-        if (!respondent) throw new TRPCError({ code: "NOT_FOUND" });
-        const responses = await getSurveyResponsesByRespondent(input.respondentId);
-        const responsesWithAnswers = await Promise.all(
-          responses.map(async (r) => {
-            const answers = await getAnswersByResponse(r.id);
-            const survey = await getSurveyById(r.surveyId);
-            return { ...r, answers, survey };
-          })
-        );
-        return { respondent, responses: responsesWithAnswers };
-      }),
-
-    answerHistory: adminProcedure
-      .input(z.object({ responseAnswerId: z.number() }))
-      .query(({ input }) => getAnswerHistory(input.responseAnswerId)),
-  }),
-
-  // ─── Org Owner ────────────────────────────────────────────────────────────────
-
-  org: router({
-    overview: orgOwnerProcedure
-      .input(z.object({ organizationId: z.number() }))
-      .query(async ({ input, ctx }) => {
-        const org = await getOrganizationById(input.organizationId);
-        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        return getOrgOverviewMetrics(input.organizationId);
-      }),
-
-    responseTrend: orgOwnerProcedure
-      .input(z.object({ organizationId: z.number(), days: z.number().default(30) }))
-      .query(async ({ input, ctx }) => {
-        const org = await getOrganizationById(input.organizationId);
-        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        return getOrgResponseTrend(input.organizationId, input.days);
-      }),
-
-    respondents: orgOwnerProcedure
-      .input(z.object({ organizationId: z.number() }))
-      .query(async ({ input, ctx }) => {
-        const org = await getOrganizationById(input.organizationId);
-        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        return getRespondentsByOrg(input.organizationId);
-      }),
-
-    respondentDetail: orgOwnerProcedure
-      .input(z.object({ organizationId: z.number(), respondentId: z.number() }))
-      .query(async ({ input, ctx }) => {
-        const org = await getOrganizationById(input.organizationId);
-        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        const respondent = await getRespondentById(input.respondentId);
-        if (!respondent) throw new TRPCError({ code: "NOT_FOUND" });
-        const responses = await getSurveyResponsesByRespondent(input.respondentId);
-        const responsesWithAnswers = await Promise.all(
-          responses.map(async (r) => {
-            const answers = await getAnswersByResponse(r.id);
-            const history = await getFullAnswerHistoryByResponse(r.id);
-            const survey = await getSurveyById(r.surveyId);
-            return { ...r, answers, history, survey };
-          })
-        );
-        return { respondent, responses: responsesWithAnswers };
-      }),
-
-    responses: orgOwnerProcedure
-      .input(z.object({ organizationId: z.number() }))
-      .query(async ({ input, ctx }) => {
-        const org = await getOrganizationById(input.organizationId);
-        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        return getSurveyResponsesByOrg(input.organizationId);
-      }),
-
-    // ── Email Invitations ────────────────────────────────────────────────────
-
-    sendInvitations: orgOwnerProcedure
-      .input(
-        z.object({
-          organizationId: z.number(),
-          surveyId: z.number(),
-          recipients: z.array(
-            z.object({
-              email: z.string().email(),
-              name: z.string().optional(),
-            })
-          ),
-          personalMessage: z.string().optional(),
-        })
-      )
+  contacts: router({
+    list: protectedProcedure.input(z.object({ organizationId: z.number() })).query(async ({ input, ctx }) => {
+      const org = await getOrganizationById(input.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return getContactsByOrg(input.organizationId);
+    }),
+    create: protectedProcedure
+      .input(z.object({ organizationId: z.number(), name: z.string().optional(), email: z.string().email().optional(), phone: z.string().optional(), preferredChannel: z.enum(["email", "whatsapp", "sms"]).optional(), tags: z.array(z.string()).optional() }))
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        const survey = await getSurveyById(input.surveyId);
-        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
-
-        // Get or create the active survey link
-        const links = await getSurveyLinksBySurvey(input.surveyId);
-        const activeLink = links.find((l) => l.isActive);
-        if (!activeLink) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "No active survey link found" });
-
-        const results = await Promise.all(
-          input.recipients.map(async (recipient) => {
-            const inviteToken = nanoid(32);
-            const invitation = await createSurveyInvitation({
-              organizationId: input.organizationId,
-              surveyId: input.surveyId,
-              surveyLinkId: activeLink.id,
-              recipientEmail: recipient.email,
-              recipientName: recipient.name ?? null,
-              inviteToken,
-              status: "pending",
-              sentById: ctx.user.id,
-              personalMessage: input.personalMessage ?? null,
-            });
-
-            // Build the survey URL with the invite token
-            const baseUrl = ctx.req.headers.origin as string || "";
-            const surveyUrl = `${baseUrl}/s/${activeLink.token}?invite=${inviteToken}`;
-
-            const sent = await sendSurveyInvitationEmail({
-              to: recipient.email,
-              recipientName: recipient.name ?? null,
-              organizationName: org.name,
-              surveyTitle: survey.title,
-              surveyUrl,
-              personalMessage: input.personalMessage,
-              senderName: ctx.user.name ?? ctx.user.email ?? "Survey Team",
-            });
-
-            if (sent) {
-              await updateInvitationSentStatus(invitation.id);
-            } else {
-              await markInvitationFailed(invitation.id);
-            }
-
-            return { email: recipient.email, success: sent };
-          })
-        );
-
-        const sent = results.filter((r) => r.success).length;
-        const failed = results.filter((r) => !r.success).length;
-        return { sent, failed, results };
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const currentCount = await countContactsByOrg(input.organizationId);
+        if (currentCount >= 1500) throw new TRPCError({ code: "BAD_REQUEST", message: "Contact limit of 1,500 reached" });
+        return createContact({ ...input, tags: input.tags ?? null });
       }),
-
-    invitations: orgOwnerProcedure
-      .input(z.object({ organizationId: z.number() }))
-      .query(async ({ input, ctx }) => {
-        const org = await getOrganizationById(input.organizationId);
-        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        return getInvitationsByOrg(input.organizationId);
-      }),
-
-    resendInvitation: orgOwnerProcedure
-      .input(z.object({ invitationId: z.number(), organizationId: z.number() }))
+    bulkImport: protectedProcedure
+      .input(z.object({ organizationId: z.number(), contacts: z.array(z.object({ name: z.string().optional(), email: z.string().email().optional(), phone: z.string().optional(), preferredChannel: z.enum(["email", "whatsapp", "sms"]).optional() })) }))
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        const invitations = await getInvitationsByOrg(input.organizationId);
-        const invitation = invitations.find((i) => i.id === input.invitationId);
-        if (!invitation) throw new TRPCError({ code: "NOT_FOUND", message: "Invitation not found" });
-        const survey = await getSurveyById(invitation.surveyId);
-        if (!survey) throw new TRPCError({ code: "NOT_FOUND", message: "Survey not found" });
-        const links = await getSurveyLinksBySurvey(invitation.surveyId);
-        const activeLink = links.find((l) => l.isActive);
-        if (!activeLink) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "No active survey link found" });
-        const origin = (ctx.req.headers["origin"] as string) || (ctx.req.headers["referer"] as string || "").replace(/\/[^/]*$/, "");
-        const surveyUrl = `${origin}/s/${activeLink.token}?invite=${invitation.inviteToken}`;
-        const sent = await sendSurveyInvitationEmail({
-          to: invitation.recipientEmail,
-          recipientName: invitation.recipientName,
-          organizationName: org.name,
-          surveyTitle: survey.title,
-          surveyUrl,
-          personalMessage: invitation.personalMessage ?? undefined,
-          senderName: ctx.user.name ?? ctx.user.email ?? "Survey Team",
-        });
-        if (!sent) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to resend invitation" });
-        await updateInvitationSentStatus(invitation.id);
-        return { success: true };
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const currentCount = await countContactsByOrg(input.organizationId);
+        const remaining = 1500 - currentCount;
+        const toInsert = input.contacts.slice(0, remaining).map((c) => ({ ...c, organizationId: input.organizationId, tags: null }));
+        const count = await bulkCreateContacts(toInsert);
+        return { imported: count, skipped: input.contacts.length - count };
       }),
-
-    // ── Custom Questions ─────────────────────────────────────────────────────
-
-    customQuestions: orgOwnerProcedure
-      .input(z.object({ surveyId: z.number(), organizationId: z.number() }))
-      .query(async ({ input, ctx }) => {
-        const org = await getOrganizationById(input.organizationId);
-        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        return getCustomQuestions(input.surveyId, input.organizationId);
-      }),
-
-    addCustomQuestion: orgOwnerProcedure
-      .input(
-        z.object({
-          organizationId: z.number(),
-          surveyId: z.number(),
-          questionText: z.string().min(1),
-          questionType: z.enum(["open_ended", "multiple_choice", "single_choice", "checkboxes"]),
-          options: z.array(z.object({ value: z.string(), label: z.string() })).optional(),
-          isRequired: z.boolean().default(false),
-          sortOrder: z.number().default(0),
-        })
-      )
+    update: protectedProcedure
+      .input(z.object({ id: z.number(), organizationId: z.number(), name: z.string().optional(), email: z.string().email().optional(), phone: z.string().optional(), preferredChannel: z.enum(["email", "whatsapp", "sms"]).optional(), tags: z.array(z.string()).optional() }))
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        const questionKey = `custom_${nanoid(8)}`;
-        return createCustomQuestion({
-          organizationId: input.organizationId,
-          surveyId: input.surveyId,
-          questionKey,
-          questionText: input.questionText,
-          questionType: input.questionType,
-          options: input.options ?? null,
-          isRequired: input.isRequired,
-          sortOrder: input.sortOrder,
-        });
-      }),
-
-    updateCustomQuestion: orgOwnerProcedure
-      .input(
-        z.object({
-          id: z.number(),
-          organizationId: z.number(),
-          questionText: z.string().min(1).optional(),
-          questionType: z.enum(["open_ended", "multiple_choice", "single_choice", "checkboxes"]).optional(),
-          options: z.array(z.object({ value: z.string(), label: z.string() })).optional(),
-          isRequired: z.boolean().optional(),
-          sortOrder: z.number().optional(),
-        })
-      )
-      .mutation(async ({ input, ctx }) => {
-        const org = await getOrganizationById(input.organizationId);
-        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
         const { id, organizationId, ...data } = input;
-        await updateCustomQuestion(id, organizationId, data);
+        await updateContact(id, { ...data, tags: data.tags ?? null });
         return { success: true };
       }),
-
-    deleteCustomQuestion: orgOwnerProcedure
+    delete: protectedProcedure
       .input(z.object({ id: z.number(), organizationId: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        await deleteCustomQuestion(input.id, input.organizationId);
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        await deleteContact(input.id);
         return { success: true };
       }),
+  }),
 
-    // ── Reports ──────────────────────────────────────────────────────────────
-
-    emailReport: orgOwnerProcedure
-      .input(
-        z.object({
-          organizationId: z.number(),
-          surveyId: z.number(),
-          toEmail: z.string().email(),
-        })
-      )
+  audiences: router({
+    list: protectedProcedure.input(z.object({ organizationId: z.number() })).query(async ({ input, ctx }) => {
+      const org = await getOrganizationById(input.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const auds = await getAudiencesByOrg(input.organizationId);
+      return Promise.all(auds.map(async (a) => ({ ...a, contactCount: await countAudienceContacts(a.id) })));
+    }),
+    create: protectedProcedure
+      .input(z.object({ organizationId: z.number(), name: z.string().min(1), channel: z.enum(["email", "whatsapp", "sms"]).optional(), country: z.string().optional() }))
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) {
-          throw new TRPCError({ code: "FORBIDDEN" });
-        }
-        const survey = await getSurveyById(input.surveyId);
-        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
-
-        const responses = await getSurveyResponsesBySurvey(input.surveyId);
-        const completed = responses.filter((r) => r.status === "completed");
-        const completionRate = responses.length > 0 ? Math.round((completed.length / responses.length) * 100) : 0;
-
-        // Build CSV
-        const rows = await Promise.all(
-          responses.map(async (r) => {
-            const answers = await getAnswersByResponse(r.id);
-            const respondent = await getRespondentById(r.respondentId);
-            const answerMap: Record<string, string> = {};
-            for (const a of answers) {
-              const v = a.value;
-              answerMap[a.questionKey] = Array.isArray(v) ? v.join("; ") : String(v ?? "");
-            }
-            return {
-              ResponseId: r.id,
-              Status: r.status,
-              StartedAt: r.startedAt?.toISOString() ?? "",
-              CompletedAt: r.completedAt?.toISOString() ?? "",
-              RespondentName: respondent?.name ?? "",
-              RespondentEmail: respondent?.email ?? "",
-              RespondentCompany: respondent?.company ?? "",
-              RespondentCountry: respondent?.country ?? "",
-              ...answerMap,
-            };
-          })
-        );
-
-        const allKeys = Array.from(new Set(rows.flatMap((r) => Object.keys(r))));
-        const csvLines = [
-          allKeys.join(","),
-          ...rows.map((r) =>
-            allKeys.map((k) => `"${String((r as Record<string, unknown>)[k] ?? "").replace(/"/g, '""')}"`).join(",")
-          ),
-        ];
-        const csvContent = csvLines.join("\n");
-        const csvFilename = `${org.slug}-${survey.formKey}-report-${new Date().toISOString().slice(0, 10)}.csv`;
-        const now = new Date();
-        const reportPeriod = `${new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString("en-US", { month: "long", year: "numeric" })}`;
-
-        const sent = await sendReportEmail({
-          to: input.toEmail,
-          recipientName: ctx.user.name ?? ctx.user.email ?? "Account Holder",
-          organizationName: org.name,
-          surveyTitle: survey.title,
-          reportPeriod,
-          totalResponses: responses.length,
-          completedResponses: completed.length,
-          completionRate,
-          csvContent,
-          csvFilename,
-        });
-
-        if (!sent) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to send report email" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        return createAudience(input);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number(), organizationId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        await deleteAudience(input.id);
         return { success: true };
       }),
+    getContacts: protectedProcedure.input(z.object({ audienceId: z.number(), organizationId: z.number() })).query(async ({ input, ctx }) => {
+      const org = await getOrganizationById(input.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return getAudienceContacts(input.audienceId);
+    }),
+    addContacts: protectedProcedure
+      .input(z.object({ audienceId: z.number(), contactIds: z.array(z.number()), organizationId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        await addContactsToAudience(input.audienceId, input.contactIds);
+        return { success: true };
+      }),
+    removeContact: protectedProcedure
+      .input(z.object({ audienceId: z.number(), contactId: z.number(), organizationId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        await removeContactFromAudience(input.audienceId, input.contactId);
+        return { success: true };
+      }),
+  }),
+
+  surveys: router({
+    list: protectedProcedure.input(z.object({ organizationId: z.number() })).query(async ({ input, ctx }) => {
+      const org = await getOrganizationById(input.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return getSurveysByOrg(input.organizationId);
+    }),
+    get: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ input, ctx }) => {
+      const survey = await getSurveyById(input.id);
+      if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+      const org = await getOrganizationById(survey.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return survey;
+    }),
+    create: protectedProcedure
+      .input(z.object({ organizationId: z.number(), title: z.string().min(1), description: z.string().optional(), objective: z.string().optional(), isAnonymous: z.boolean().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        return createSurveyRecord(input);
+      }),
+    activate: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ input, ctx }) => {
+      const survey = await getSurveyById(input.id);
+      if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+      const org = await getOrganizationById(survey.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      await updateSurvey(input.id, { status: "active" } as any);
+      return { success: true };
+    }),
+    deactivate: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ input, ctx }) => {
+      const survey = await getSurveyById(input.id);
+      if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+      const org = await getOrganizationById(survey.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      await updateSurvey(input.id, { status: "inactive" } as any);
+      return { success: true };
+    }),
+    listAllWithStats: adminProcedure.query(() => getAllSurveysWithStats()),
+    getResponses: protectedProcedure.input(z.object({ surveyId: z.number() })).query(async ({ input, ctx }) => {
+      const survey = await getSurveyById(input.surveyId);
+      if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+      const org = await getOrganizationById(survey.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return getSurveyResponsesBySurvey(input.surveyId);
+    }),
+    getLinks: protectedProcedure.input(z.object({ surveyId: z.number() })).query(async ({ input, ctx }) => {
+      const survey = await getSurveyById(input.surveyId);
+      if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+      const org = await getOrganizationById(survey.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return getSurveyLinksBySurvey(input.surveyId);
+    }),
+    createLink: protectedProcedure.input(z.object({ surveyId: z.number(), label: z.string().optional() })).mutation(async ({ input, ctx }) => {
+      const survey = await getSurveyById(input.surveyId);
+      if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+      const org = await getOrganizationById(survey.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const token = nanoid(32);
+      return createSurveyLink({ surveyId: input.surveyId, token, label: input.label });
+    }),
+    downloadPdf: protectedProcedure.input(z.object({ surveyId: z.number() })).mutation(async ({ input, ctx }) => {
+      const survey = await getSurveyById(input.surveyId);
+      if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+      const org = await getOrganizationById(survey.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const responses = await getSurveyResponsesBySurvey(input.surveyId);
+      const html = buildSurveyReportHtml({ orgName: org.name, surveyTitle: survey.title, formKey: survey.joinCode ?? "custom", generatedAt: new Date(), stats: { totalResponses: responses.length, completedResponses: responses.filter((r: any) => r.isComplete).length, completionRate: responses.length > 0 ? Math.round((responses.filter((r: any) => r.isComplete).length / responses.length) * 100) : 0 }, questionInsights: [] });
+      const pdfBuffer = await generatePdfFromHtml(html);
+      return { pdf: pdfBuffer.toString("base64") };
+    }),
+  }),
+
+  questions: router({
+    list: protectedProcedure.input(z.object({ surveyId: z.number() })).query(async ({ input, ctx }) => {
+      const survey = await getSurveyById(input.surveyId);
+      if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+      const org = await getOrganizationById(survey.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return getSurveyQuestions(input.surveyId);
+    }),
+    create: protectedProcedure
+      .input(z.object({ surveyId: z.number(), organizationId: z.number(), questionKey: z.string(), questionText: z.string().min(1), questionType: z.enum(["open_ended","multiple_choice_single","multiple_choice_multi","yes_no","nps","csat","ces_5","ces_7","range_0_10","number_input","year","date","consent","end_message","nps_comment"]), options: z.array(z.object({ value: z.string(), label: z.string() })).optional(), isRequired: z.boolean().optional(), maxChars: z.number().optional(), sortOrder: z.number().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        return createSurveyQuestion({ ...input, options: input.options ?? null, branchingLogic: null });
+      }),
+    update: protectedProcedure
+      .input(z.object({ id: z.number(), organizationId: z.number(), questionText: z.string().optional(), options: z.array(z.object({ value: z.string(), label: z.string() })).optional(), isRequired: z.boolean().optional(), maxChars: z.number().optional(), sortOrder: z.number().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const { id, organizationId, ...data } = input;
+        await updateSurveyQuestion(id, { ...data, options: data.options ?? null });
+        return { success: true };
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number(), organizationId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        await deleteSurveyQuestion(input.id);
+        return { success: true };
+      }),
+    reorder: protectedProcedure
+      .input(z.object({ questionIds: z.array(z.number()), organizationId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        await reorderSurveyQuestions(input.questionIds);
+        return { success: true };
+      }),
+  }),
+
+  send: router({
+    toAudience: protectedProcedure
+      .input(z.object({ organizationId: z.number(), surveyId: z.number(), audienceId: z.number(), channel: z.enum(["email","whatsapp","sms"]), personalMessage: z.string().optional(), origin: z.string().url() }))
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        if (org.isRestricted) throw new TRPCError({ code: "FORBIDDEN", message: "Account is restricted" });
+        const survey = await getSurveyById(input.surveyId);
+        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+        const acs = await getAudienceContacts(input.audienceId);
+        let sent = 0, failed = 0;
+        for (const contact of acs) {
+          if (input.channel === "email" && !contact.email) continue;
+          if ((input.channel === "whatsapp" || input.channel === "sms") && !contact.phone) continue;
+          const token = nanoid(32);
+          const inv = await createSurveyInvitation({ organizationId: input.organizationId, surveyId: input.surveyId, audienceId: input.audienceId, contactId: contact.id, recipientEmail: contact.email ?? undefined, recipientPhone: contact.phone ?? undefined, recipientName: contact.name ?? undefined, channel: input.channel, inviteToken: token, sentById: ctx.user.id, personalMessage: input.personalMessage });
+          if (input.channel === "email" && contact.email) {
+            const ok = await sendSurveyInvitationEmail({ to: contact.email, recipientName: contact.name ?? "Valued Customer", surveyTitle: survey.title, surveyUrl: `${input.origin}/survey/${token}`, organizationName: org.name, senderName: "CXDi SurveyPro" });
+            if (ok) { await updateInvitationSentStatus(inv.id); sent++; } else { await markInvitationFailed(inv.id); failed++; }
+          } else { await updateInvitationSentStatus(inv.id); sent++; }
+        }
+        return { sent, failed, total: acs.length };
+      }),
+    toEmail: protectedProcedure
+      .input(z.object({ organizationId: z.number(), surveyId: z.number(), recipientEmail: z.string().email(), recipientName: z.string().optional(), personalMessage: z.string().optional(), origin: z.string().url() }))
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        if (org.isRestricted) throw new TRPCError({ code: "FORBIDDEN", message: "Account is restricted" });
+        const survey = await getSurveyById(input.surveyId);
+        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+        const token = nanoid(32);
+        const inv = await createSurveyInvitation({ organizationId: input.organizationId, surveyId: input.surveyId, recipientEmail: input.recipientEmail, recipientName: input.recipientName, channel: "email", inviteToken: token, sentById: ctx.user.id, personalMessage: input.personalMessage });
+        const ok = await sendSurveyInvitationEmail({ to: input.recipientEmail, recipientName: input.recipientName ?? "Valued Customer", surveyTitle: survey.title, surveyUrl: `${input.origin}/survey/${token}`, organizationName: org.name, senderName: "CXDi SurveyPro" });
+        if (ok) await updateInvitationSentStatus(inv.id); else await markInvitationFailed(inv.id);
+        return { success: ok };
+      }),
+  }),
+
+  public: router({
+    getSurveyByToken: publicProcedure.input(z.object({ token: z.string() })).query(async ({ input }) => {
+      const link = await getSurveyLinkByToken(input.token);
+      if (link) {
+        const survey = await getSurveyById(link.surveyId);
+        if (!survey || survey.status !== "active") throw new TRPCError({ code: "NOT_FOUND" });
+        const questions = await getSurveyQuestions(survey.id);
+        return { survey, questions, type: "link" as const };
+      }
+      const inv = await getInvitationByToken(input.token);
+      if (inv) {
+        const survey = await getSurveyById(inv.surveyId);
+        if (!survey || survey.status !== "active") throw new TRPCError({ code: "NOT_FOUND" });
+        const questions = await getSurveyQuestions(survey.id);
+        return { survey, questions, type: "invitation" as const };
+      }
+      throw new TRPCError({ code: "NOT_FOUND", message: "Survey not found or link is inactive" });
+    }),
+    startResponse: publicProcedure
+      .input(z.object({ token: z.string(), respondentName: z.string().optional(), respondentEmail: z.string().email().optional() }))
+      .mutation(async ({ input }) => {
+        const inv = await getInvitationByToken(input.token);
+        const link = inv ? null : await getSurveyLinkByToken(input.token);
+        const surveyId = inv?.surveyId ?? link?.surveyId;
+        if (!surveyId) throw new TRPCError({ code: "NOT_FOUND" });
+        const survey = await getSurveyById(surveyId);
+        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+        let respondentId: number | undefined;
+        if (!survey.isAnonymous && (input.respondentEmail || input.respondentName)) {
+          const r = await createRespondent({ organizationId: survey.organizationId, name: input.respondentName, email: input.respondentEmail });
+          respondentId = r.id;
+        }
+        const response = await createSurveyResponse({ surveyId: survey.id, organizationId: survey.organizationId, respondentId, inviteToken: input.token });
+        if (inv) await updateInvitationStatus(input.token, "opened", { openedAt: new Date() });
+        return { responseId: response.id };
+      }),
+    saveAnswer: publicProcedure
+      .input(z.object({ responseId: z.number(), questionKey: z.string(), value: z.unknown() }))
+      .mutation(async ({ input }) => {
+        await upsertResponseAnswer(input.responseId, input.questionKey, input.value);
+        return { success: true };
+      }),
+    completeResponse: publicProcedure
+      .input(z.object({ responseId: z.number(), token: z.string(), npsScore: z.number().min(0).max(10).optional(), csatScore: z.number().min(1).max(5).optional(), cesScore: z.number().min(1).max(7).optional() }))
+      .mutation(async ({ input }) => {
+        let sentiment: "promoter" | "passive" | "detractor" | undefined;
+        if (input.npsScore !== undefined) {
+          if (input.npsScore >= 9) sentiment = "promoter";
+          else if (input.npsScore >= 7) sentiment = "passive";
+          else sentiment = "detractor";
+        }
+        await completeSurveyResponse(input.responseId, { npsScore: input.npsScore, csatScore: input.csatScore, cesScore: input.cesScore, sentiment });
+        const inv = await getInvitationByToken(input.token);
+        if (inv) await updateInvitationStatus(input.token, "completed", { completedAt: new Date(), surveyResponseId: input.responseId });
+        return { success: true };
+      }),
+  }),
+
+  respondents: router({
+    list: protectedProcedure.input(z.object({ organizationId: z.number() })).query(async ({ input, ctx }) => {
+      const org = await getOrganizationById(input.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      return getRespondentsByOrg(input.organizationId);
+    }),
+    getAnswers: protectedProcedure.input(z.object({ responseId: z.number() })).query(async ({ input }) => {
+      return getAnswersByResponse(input.responseId);
+    }),
+  }),
+
+  admin: router({
+    overviewMetrics: adminProcedure.query(() => getAdminOverviewMetrics()),
+    responseTrend: adminProcedure.input(z.object({ days: z.number().optional() })).query(({ input }) => getResponseTrend(input.days)),
+    allUsers: adminProcedure.query(() => getAllUsers()),
+    allOrgs: adminProcedure.query(() => getAllOrganizations()),
+    allSurveys: adminProcedure.query(() => getAllSurveysWithStats()),
+    allRespondents: adminProcedure.query(() => getAllRespondents()),
+    allResponses: adminProcedure.query(() => getAllSurveyResponses()),
+    setUserRole: adminProcedure
+      .input(z.object({ userId: z.number(), role: z.enum(["user", "admin", "org_owner"]) }))
+      .mutation(async ({ input }) => { await updateUserRole(input.userId, input.role); return { success: true }; }),
+    restrictOrg: adminProcedure
+      .input(z.object({ orgId: z.number(), isRestricted: z.boolean(), reason: z.string().optional() }))
+      .mutation(async ({ input }) => { await setOrganizationRestriction(input.orgId, input.isRestricted, input.reason); return { success: true }; }),
+    getSurveyInsights: adminProcedure.input(z.object({ surveyId: z.number() })).query(async ({ input }) => {
+      const survey = await getSurveyById(input.surveyId);
+      if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+      const responses = await getSurveyResponsesBySurvey(input.surveyId);
+      return { survey, responses };
+    }),
+    downloadPdf: adminProcedure.input(z.object({ surveyId: z.number() })).mutation(async ({ input }) => {
+      const survey = await getSurveyById(input.surveyId);
+      if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+      const org = await getOrganizationById(survey.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      const responses = await getSurveyResponsesBySurvey(input.surveyId);
+      const html = buildSurveyReportHtml({ orgName: org.name, surveyTitle: survey.title, formKey: survey.joinCode ?? "custom", generatedAt: new Date(), stats: { totalResponses: responses.length, completedResponses: responses.filter((r: any) => r.isComplete).length, completionRate: responses.length > 0 ? Math.round((responses.filter((r: any) => r.isComplete).length / responses.length) * 100) : 0 }, questionInsights: [] });
+      const pdfBuffer = await generatePdfFromHtml(html);
+      return { pdf: pdfBuffer.toString("base64") };
+    }),
   }),
 });
 
