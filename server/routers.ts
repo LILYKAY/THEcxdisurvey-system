@@ -445,6 +445,17 @@ export const appRouter = router({
       await updateSurvey(input.id, { status: "inactive" } as any);
       return { success: true };
     }),
+    setExpiry: protectedProcedure
+      .input(z.object({ id: z.number(), expiresAt: z.date().nullable() }))
+      .mutation(async ({ input, ctx }) => {
+        const survey = await getSurveyById(input.id);
+        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+        const org = await getOrganizationById(survey.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        await updateSurvey(input.id, { expiresAt: input.expiresAt } as any);
+        return { success: true };
+      }),
     listAllWithStats: adminProcedure.query(() => getAllSurveysWithStats()),
     getResponses: protectedProcedure.input(z.object({ surveyId: z.number() })).query(async ({ input, ctx }) => {
       const survey = await getSurveyById(input.surveyId);

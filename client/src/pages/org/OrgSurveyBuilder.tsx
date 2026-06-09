@@ -10,8 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
-import { Plus, Trash2, GripVertical, ArrowLeft, Send } from "lucide-react";
+import { Plus, Trash2, GripVertical, ArrowLeft, Send, CalendarIcon, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const QUESTION_TYPES = [
   { value: "nps", label: "NPS (0-10 Scale)" },
@@ -42,9 +45,26 @@ export default function OrgSurveyBuilder() {
   const [qText, setQText] = useState("");
   const [qType, setQType] = useState("open_ended");
   const [qRequired, setQRequired] = useState(true);
+  const [expiryOpen, setExpiryOpen] = useState(false);
 
   const { data: survey } = trpc.surveys.get.useQuery({ id: surveyIdNum });
   const { data: questions, isLoading } = trpc.questions.list.useQuery({ surveyId: surveyIdNum });
+
+  // Derive the current expiry date from the loaded survey
+  const currentExpiry = survey?.expiresAt ? new Date(survey.expiresAt) : undefined;
+
+  const setExpiry = trpc.surveys.setExpiry.useMutation({
+    onSuccess: () => {
+      utils.surveys.get.invalidate({ id: surveyIdNum });
+      setExpiryOpen(false);
+      toast.success("Survey expiry date updated");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleSetExpiry = (date: Date | undefined) => {
+    setExpiry.mutate({ id: surveyIdNum, expiresAt: date ?? null });
+  };
 
   const createQ = trpc.questions.create.useMutation({
     onSuccess: () => {
@@ -121,6 +141,69 @@ export default function OrgSurveyBuilder() {
             ))
           )}
         </div>
+
+        {/* Survey Settings Panel */}
+        <Card className="border border-gray-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Survey Settings</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Expiry date */}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <Label className="text-sm font-medium text-gray-700">Expiry Date</Label>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  After this date the survey will no longer accept responses.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {currentExpiry && (
+                  <span className="text-sm text-gray-600">
+                    {currentExpiry.toLocaleDateString(undefined, { dateStyle: "medium" })}
+                  </span>
+                )}
+                <Popover open={expiryOpen} onOpenChange={setExpiryOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={cn(
+                        "gap-2",
+                        currentExpiry && "border-amber-300 text-amber-700 hover:bg-amber-50"
+                      )}
+                    >
+                      <CalendarIcon className="w-4 h-4" />
+                      {currentExpiry ? "Change" : "Set expiry"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={currentExpiry}
+                      onSelect={(date) => handleSetExpiry(date)}
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      initialFocus
+                    />
+                    {currentExpiry && (
+                      <div className="border-t p-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full text-red-500 hover:text-red-700 hover:bg-red-50 gap-2"
+                          onClick={() => handleSetExpiry(undefined)}
+                          disabled={setExpiry.isPending}
+                        >
+                          <X className="w-4 h-4" />
+                          Remove expiry date
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <Dialog open={showAdd} onOpenChange={setShowAdd}>
           <DialogTrigger asChild>

@@ -232,3 +232,10 @@
 - [x] Add survey expiry check on public SurveyPage (show "This survey has closed" if expiresAt is in the past)
 - [x] Add invitations list view per survey (/org/:orgId/surveys/:surveyId/invitations)
 - [x] Remove "View Demo" button from landing page hero (Home.tsx)
+
+## Phase 20: Survey Expiry Date-Picker in Builder
+
+- [x] Add expiresAt update procedure to backend (surveys.setExpiry in routers.ts)
+- [x] Add updateSurveyExpiry helper to db.ts
+- [x] Add date-picker UI to Survey Builder settings panel (OrgSurveyBuilder.tsx)
+- [x] Show current expiry date and allow clearing it
