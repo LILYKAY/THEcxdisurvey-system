@@ -156,6 +156,7 @@ export default function OrgEmailBranding() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [logoUrl, setLogoUrl] = useState("");
+  const [localPreviewUrl, setLocalPreviewUrl] = useState(""); // object URL for instant preview before upload completes
   const [primaryColor, setPrimaryColor] = useState("#00BCD4");
   const [secondaryColor, setSecondaryColor] = useState("#0097A7");
   const [signatureTag, setSignatureTag] = useState("");
@@ -193,6 +194,10 @@ export default function OrgEmailBranding() {
       return;
     }
 
+    // Show an instant local preview before the upload completes
+    const objectUrl = URL.createObjectURL(file);
+    setLocalPreviewUrl(objectUrl);
+
     setUploading(true);
     try {
       const formData = new FormData();
@@ -203,9 +208,14 @@ export default function OrgEmailBranding() {
         throw new Error(err.error ?? "Upload failed");
       }
       const { url } = await res.json();
+      // Replace the local blob URL with the permanent storage URL
       setLogoUrl(url);
-      toast.success("Logo uploaded successfully");
+      setLocalPreviewUrl("");
+      URL.revokeObjectURL(objectUrl);
+      toast.success("Logo uploaded — click Save to apply");
     } catch (err: any) {
+      setLocalPreviewUrl("");
+      URL.revokeObjectURL(objectUrl);
       toast.error(err.message ?? "Logo upload failed");
     } finally {
       setUploading(false);
@@ -323,26 +333,33 @@ export default function OrgEmailBranding() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Current logo preview */}
-                {logoUrl && (
+                {/* Current logo preview — shows local blob immediately, then switches to the stored URL */}
+                {(localPreviewUrl || logoUrl) && (
                   <div className="relative inline-block">
                     <div className="border border-gray-200 rounded-lg p-3 bg-gray-50 inline-flex items-center gap-3">
                       <img
-                        src={logoUrl}
+                        src={localPreviewUrl || logoUrl}
                         alt="Current logo"
                         className="h-10 max-w-[160px] object-contain"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                       />
-                      <button
-                        type="button"
-                        onClick={() => setLogoUrl("")}
-                        className="text-gray-400 hover:text-red-500 transition-colors"
-                        title="Remove logo"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                      {!localPreviewUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setLogoUrl("")}
+                          className="text-gray-400 hover:text-red-500 transition-colors"
+                          title="Remove logo"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
-                    <Badge variant="secondary" className="absolute -top-2 -right-2 text-xs">Current</Badge>
+                    <Badge
+                      variant={localPreviewUrl ? "outline" : "secondary"}
+                      className="absolute -top-2 -right-2 text-xs"
+                    >
+                      {localPreviewUrl ? "Uploading…" : "Current"}
+                    </Badge>
                   </div>
                 )}
 
@@ -459,7 +476,7 @@ export default function OrgEmailBranding() {
                   </CardHeader>
                   <CardContent>
                     <EmailPreview
-                      logoUrl={logoUrl}
+                      logoUrl={localPreviewUrl || logoUrl}
                       primaryColor={primaryColor}
                       secondaryColor={secondaryColor}
                       signatureTag={signatureTag}
