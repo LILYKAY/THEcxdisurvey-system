@@ -513,22 +513,13 @@ export const appRouter = router({
         return createSurveyQuestion({ ...input, options: input.options ?? null, branchingLogic: null });
       }),
     update: protectedProcedure
-      .input(z.object({
-        id: z.number(),
-        organizationId: z.number(),
-        questionText: z.string().optional(),
-        questionType: z.string().optional(),
-        options: z.array(z.object({ value: z.string(), label: z.string() })).optional().nullable(),
-        isRequired: z.boolean().optional(),
-        maxChars: z.number().optional(),
-        sortOrder: z.number().optional(),
-      }))
+      .input(z.object({ id: z.number(), organizationId: z.number(), questionText: z.string().optional(), options: z.array(z.object({ value: z.string(), label: z.string() })).optional(), isRequired: z.boolean().optional(), maxChars: z.number().optional(), sortOrder: z.number().optional() }))
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
         if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
         const { id, organizationId, ...data } = input;
-        await updateSurveyQuestion(id, { ...data, options: data.options ?? null } as any);
+        await updateSurveyQuestion(id, { ...data, options: data.options ?? null });
         return { success: true };
       }),
     delete: protectedProcedure
