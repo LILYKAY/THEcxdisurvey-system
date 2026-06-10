@@ -374,16 +374,7 @@ export default function OrgEmailBranding() {
                   onChange={handleLogoUpload}
                 />
 
-                {/* Or paste URL */}
-                <div>
-                  <Label className="text-xs text-gray-500 mb-1 block">Or paste a logo URL</Label>
-                  <Input
-                    value={logoUrl}
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                    placeholder="https://yoursite.com/logo.png"
-                    className="text-sm"
-                  />
-                </div>
+
               </CardContent>
             </Card>
 
