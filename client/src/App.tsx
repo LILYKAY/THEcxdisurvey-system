@@ -25,6 +25,7 @@ import AdminRespondents from "./pages/admin/AdminRespondents";
 import AdminSurveyInsights from "./pages/admin/AdminSurveyInsights";
 import AdminSurveys from "./pages/admin/AdminSurveys";
 import AdminRespondentDetail from "./pages/admin/AdminRespondentDetail";
+import AdminGuard from "./components/AdminGuard";
 
 // Org pages
 import OrgDashboard from "./pages/org/OrgDashboard";
@@ -56,14 +57,14 @@ function Router() {
       <Route path="/s/:token" component={SurveyPage} />
       <Route path="/survey-complete" component={SurveyComplete} />
 
-      {/* Admin */}
-      <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/users" component={AdminUsers} />
-      <Route path="/admin/organizations" component={AdminOrganizations} />
-      <Route path="/admin/respondents" component={AdminRespondents} />
-      <Route path="/admin/respondents/:id" component={AdminRespondentDetail} />
-      <Route path="/admin/surveys" component={AdminSurveys} />
-      <Route path="/admin/surveys/:id/insights" component={AdminSurveyInsights} />
+      {/* Admin — protected: only platform admins */}
+      <Route path="/admin" component={() => <AdminGuard><AdminDashboard /></AdminGuard>} />
+      <Route path="/admin/users" component={() => <AdminGuard><AdminUsers /></AdminGuard>} />
+      <Route path="/admin/organizations" component={() => <AdminGuard><AdminOrganizations /></AdminGuard>} />
+      <Route path="/admin/respondents" component={() => <AdminGuard><AdminRespondents /></AdminGuard>} />
+      <Route path="/admin/respondents/:id" component={() => <AdminGuard><AdminRespondentDetail /></AdminGuard>} />
+      <Route path="/admin/surveys" component={() => <AdminGuard><AdminSurveys /></AdminGuard>} />
+      <Route path="/admin/surveys/:id/insights" component={() => <AdminGuard><AdminSurveyInsights /></AdminGuard>} />
 
       {/* Org Owner */}
       <Route path="/org/:orgId" component={OrgDashboard} />

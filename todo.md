@@ -251,3 +251,11 @@
 - [x] Mobile optimize OrgDashboard and OrgAnalytics pages
 - [x] Mobile optimize admin pages (AdminDashboard, AdminUsers, AdminOrganizations)
 - [x] Mobile optimize Home.tsx landing page
+
+## Phase 23: Role-Based Dashboard Routing
+
+- [x] Fix post-login redirect: regular users → /org/:id, admins → /admin
+- [x] Build focused OrgDashboard for regular users (surveys, responses, contacts, quick-create survey)
+- [x] Gate /admin/* routes so only platform admins can access them
+- [x] Hide admin sidebar nav items (Organisations, Users) from non-admin users
+- [x] Redirect non-admin users away from /admin/* to their org dashboard

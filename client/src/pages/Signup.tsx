@@ -23,10 +23,8 @@ export default function Signup() {
       const user = await utils.auth.me.fetch();
       if (user?.role === "admin") {
         navigate("/admin");
-      } else if (user?.role === "org_owner") {
-        navigate("/org-select");
       } else {
-        navigate("/");
+        navigate("/org-select");
       }
     },
     onError: (err) => {
