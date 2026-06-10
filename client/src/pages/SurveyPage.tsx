@@ -304,6 +304,13 @@ function QuestionField({ question, value, onChange }: {
 
   if (question.type === "multiple_choice_single" || question.type === "single_choice") {
     const opts = question.options ?? [];
+    if (opts.length === 0) {
+      return (
+        <p className="text-sm text-muted-foreground italic px-1">
+          No options configured for this question. Please contact the survey administrator.
+        </p>
+      );
+    }
     return (
       <div className="space-y-2.5">
         {opts.map((opt) => (
@@ -330,6 +337,13 @@ function QuestionField({ question, value, onChange }: {
 
   if (question.type === "multiple_choice_multi" || question.type === "multiple_choice" || question.type === "checkboxes") {
     const opts = question.options ?? [];
+    if (opts.length === 0) {
+      return (
+        <p className="text-sm text-muted-foreground italic px-1">
+          No options configured for this question. Please contact the survey administrator.
+        </p>
+      );
+    }
     const maxSel = question.maxSelections;
     const toggle = (v: string) => {
       if (arrVal.includes(v)) { onChange(arrVal.filter((s) => s !== v)); }
@@ -449,16 +463,37 @@ export default function SurveyPage() {
 
   const questions: SurveyQuestion[] = useMemo(() => {
     if (!data?.questions) return [];
-    return data.questions.map((q: any, i: number) => ({
-      key: q.questionKey,
-      number: i + 1,
-      text: q.questionText,
-      type: q.questionType as QuestionType,
-      required: !!q.isRequired,
-      options: q.options ?? null,
-      maxSelections: q.maxSelections ?? null,
-      maxChars: q.maxChars ?? null,
-    }));
+    return data.questions.map((q: any, i: number) => {
+      // options may arrive as a JSON string (MySQL json column), a parsed array, or null
+      let parsedOptions: QuestionOption[] | null = null;
+      if (q.options) {
+        try {
+          const raw = typeof q.options === "string" ? JSON.parse(q.options) : q.options;
+          if (Array.isArray(raw) && raw.length > 0) {
+            parsedOptions = raw.map((o: any) => {
+              if (typeof o === "object" && o !== null && "value" in o && "label" in o) {
+                return { value: String(o.value), label: String(o.label) };
+              }
+              // plain string item — use it as both value and label
+              const s = String(o);
+              return { value: s, label: s };
+            });
+          }
+        } catch {
+          parsedOptions = null;
+        }
+      }
+      return {
+        key: q.questionKey,
+        number: i + 1,
+        text: q.questionText,
+        type: q.questionType as QuestionType,
+        required: !!q.isRequired,
+        options: parsedOptions,
+        maxSelections: q.maxSelections ?? null,
+        maxChars: q.maxChars ?? null,
+      };
+    });
   }, [data]);
 
   const totalQ = questions.length;
