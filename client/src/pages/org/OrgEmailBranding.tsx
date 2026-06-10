@@ -163,6 +163,7 @@ export default function OrgEmailBranding() {
   const [usePlatformBranding, setUsePlatformBranding] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [previewTab, setPreviewTab] = useState<"settings" | "preview">("settings");
+  const [dimensionWarning, setDimensionWarning] = useState<string | null>(null);
 
   const { data: branding, isLoading } = trpc.branding.get.useQuery({ organizationId: orgIdNum });
   const { data: org } = trpc.org.get.useQuery({ id: orgIdNum });
@@ -197,6 +198,33 @@ export default function OrgEmailBranding() {
     // Show an instant local preview before the upload completes
     const objectUrl = URL.createObjectURL(file);
     setLocalPreviewUrl(objectUrl);
+
+    // Client-side dimension check — non-blocking, shows a warning if outside recommended bounds
+    setDimensionWarning(null);
+    await new Promise<void>((resolve) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const { naturalWidth: w, naturalHeight: h } = img;
+        const IDEAL_W = 200, IDEAL_H = 60;
+        const MAX_H = 120; // hard max — taller logos break email layouts
+        if (h > MAX_H) {
+          setDimensionWarning(
+            `Logo is ${w}×${h} px — height exceeds ${MAX_H} px and may be cropped in emails. Recommended: ${IDEAL_W}×${IDEAL_H} px.`
+          );
+        } else if (w < 100 || h < 20) {
+          setDimensionWarning(
+            `Logo is ${w}×${h} px — this may appear too small in emails. Recommended: ${IDEAL_W}×${IDEAL_H} px.`
+          );
+        } else if (w !== IDEAL_W || h !== IDEAL_H) {
+          setDimensionWarning(
+            `Logo is ${w}×${h} px. Recommended size is ${IDEAL_W}×${IDEAL_H} px for best results.`
+          );
+        }
+        resolve();
+      };
+      img.onerror = () => resolve(); // SVG or other formats that can't be measured — skip silently
+      img.src = objectUrl;
+    });
 
     setUploading(true);
     try {
@@ -391,6 +419,23 @@ export default function OrgEmailBranding() {
                   onChange={handleLogoUpload}
                 />
 
+                {/* Dimension warning — shown after file selection if size is outside recommended bounds */}
+                {dimensionWarning && (
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                    </svg>
+                    <span>{dimensionWarning}</span>
+                    <button
+                      type="button"
+                      onClick={() => setDimensionWarning(null)}
+                      className="ml-auto shrink-0 text-amber-500 hover:text-amber-700"
+                      aria-label="Dismiss warning"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
 
               </CardContent>
             </Card>
