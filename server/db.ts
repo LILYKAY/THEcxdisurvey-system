@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, ne, sql } from "drizzle-orm";
 import { type MySql2Database, drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import {
@@ -392,8 +392,28 @@ export async function getSurveyQuestions(surveyId: number) {
   return db
     .select()
     .from(surveyQuestions)
-    .where(and(eq(surveyQuestions.surveyId, surveyId), eq(surveyQuestions.isActive, true)))
+    .where(and(
+      eq(surveyQuestions.surveyId, surveyId),
+      eq(surveyQuestions.isActive, true),
+      ne(surveyQuestions.questionType, "end_message"),
+    ))
     .orderBy(surveyQuestions.sortOrder);
+}
+
+/** Returns the end_message question text for a survey, if one exists. */
+export async function getSurveyEndMessage(surveyId: number): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select({ text: surveyQuestions.questionText })
+    .from(surveyQuestions)
+    .where(and(
+      eq(surveyQuestions.surveyId, surveyId),
+      eq(surveyQuestions.isActive, true),
+      eq(surveyQuestions.questionType, "end_message"),
+    ))
+    .limit(1);
+  return rows[0]?.text ?? null;
 }
 
 export async function createSurveyQuestion(data: InsertSurveyQuestion) {

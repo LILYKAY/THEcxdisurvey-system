@@ -57,6 +57,7 @@ import {
   getSurveyById,
   getSurveyLinkByToken,
   getSurveyLinksBySurvey,
+  getSurveyEndMessage,
   getSurveyQuestions,
   getSurveyResponseById,
   getSurveyResponsesByOrg,
@@ -593,18 +594,26 @@ export const appRouter = router({
       if (link) {
         const survey = await getSurveyById(link.surveyId);
         if (!survey || survey.status !== "active") throw new TRPCError({ code: "NOT_FOUND" });
-        const questions = await getSurveyQuestions(survey.id);
+        const [questions, endMsg] = await Promise.all([
+          getSurveyQuestions(survey.id),
+          getSurveyEndMessage(survey.id),
+        ]);
         const branding = await getEmailBranding(survey.organizationId);
-        return { survey, questions, type: "link" as const, alreadyCompleted: false, branding };
+        const closingMessage = survey.closingMessage ?? endMsg ?? null;
+        return { survey: { ...survey, closingMessage }, questions, type: "link" as const, alreadyCompleted: false, branding };
       }
       const inv = await getInvitationByToken(input.token);
       if (inv) {
         const survey = await getSurveyById(inv.surveyId);
         if (!survey || survey.status !== "active") throw new TRPCError({ code: "NOT_FOUND" });
-        const questions = await getSurveyQuestions(survey.id);
+        const [questions, endMsg] = await Promise.all([
+          getSurveyQuestions(survey.id),
+          getSurveyEndMessage(survey.id),
+        ]);
         const branding = await getEmailBranding(survey.organizationId);
         const alreadyCompleted = inv.status === "completed";
-        return { survey, questions, type: "invitation" as const, alreadyCompleted, branding };
+        const closingMessage = survey.closingMessage ?? endMsg ?? null;
+        return { survey: { ...survey, closingMessage }, questions, type: "invitation" as const, alreadyCompleted, branding };
       }
       throw new TRPCError({ code: "NOT_FOUND", message: "Survey not found or link is inactive" });
     }),
