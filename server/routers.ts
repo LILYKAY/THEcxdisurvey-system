@@ -457,6 +457,28 @@ export const appRouter = router({
         await updateSurvey(input.id, { expiresAt: input.expiresAt } as any);
         return { success: true };
       }),
+    setThankYouHeadline: protectedProcedure
+      .input(z.object({ id: z.number(), thankYouHeadline: z.string().max(255).nullable() }))
+      .mutation(async ({ input, ctx }) => {
+        const survey = await getSurveyById(input.id);
+        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+        const org = await getOrganizationById(survey.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        await updateSurvey(input.id, { thankYouHeadline: input.thankYouHeadline } as any);
+        return { success: true };
+      }),
+    setClosingMessage: protectedProcedure
+      .input(z.object({ id: z.number(), closingMessage: z.string().nullable() }))
+      .mutation(async ({ input, ctx }) => {
+        const survey = await getSurveyById(input.id);
+        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+        const org = await getOrganizationById(survey.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        await updateSurvey(input.id, { closingMessage: input.closingMessage } as any);
+        return { success: true };
+      }),
     listAllWithStats: adminProcedure.query(() => getAllSurveysWithStats()),
     getResponses: protectedProcedure.input(z.object({ surveyId: z.number() })).query(async ({ input, ctx }) => {
       const survey = await getSurveyById(input.surveyId);

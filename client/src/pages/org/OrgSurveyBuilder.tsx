@@ -48,6 +48,12 @@ export default function OrgSurveyBuilder() {
   const [qOptions, setQOptions] = useState<string[]>(["Option 1", "Option 2"]);
   const [expiryOpen, setExpiryOpen] = useState(false);
 
+  // Thank You screen customisation
+  const [editingHeadline, setEditingHeadline] = useState(false);
+  const [headlineDraft, setHeadlineDraft] = useState("");
+  const [editingClosing, setEditingClosing] = useState(false);
+  const [closingDraft, setClosingDraft] = useState("");
+
   const needsOptions = ["multiple_choice_single", "multiple_choice_multi"].includes(qType);
 
   const { data: survey } = trpc.surveys.get.useQuery({ id: surveyIdNum });
@@ -55,6 +61,24 @@ export default function OrgSurveyBuilder() {
 
   // Derive the current expiry date from the loaded survey
   const currentExpiry = survey?.expiresAt ? new Date(survey.expiresAt) : undefined;
+
+  const setThankYouHeadline = trpc.surveys.setThankYouHeadline.useMutation({
+    onSuccess: () => {
+      utils.surveys.get.invalidate({ id: surveyIdNum });
+      setEditingHeadline(false);
+      toast.success("Thank You headline updated");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const setClosingMessage = trpc.surveys.setClosingMessage.useMutation({
+    onSuccess: () => {
+      utils.surveys.get.invalidate({ id: surveyIdNum });
+      setEditingClosing(false);
+      toast.success("Closing message updated");
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   const setExpiry = trpc.surveys.setExpiry.useMutation({
     onSuccess: () => {
@@ -214,6 +238,137 @@ export default function OrgSurveyBuilder() {
                   </PopoverContent>
                 </Popover>
               </div>
+            </div>
+            {/* Separator */}
+            <div className="border-t border-gray-100" />
+
+            {/* Thank You Headline */}
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Thank You Headline</Label>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    The bold heading shown on the completion screen after submission.
+                  </p>
+                </div>
+                {!editingHeadline && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => {
+                      setHeadlineDraft((survey as any)?.thankYouHeadline ?? "");
+                      setEditingHeadline(true);
+                    }}
+                  >
+                    {(survey as any)?.thankYouHeadline ? "Edit" : "Set headline"}
+                  </Button>
+                )}
+              </div>
+              {(survey as any)?.thankYouHeadline && !editingHeadline && (
+                <p className="text-sm text-gray-700 italic border-l-2 border-primary pl-3">
+                  {(survey as any).thankYouHeadline}
+                </p>
+              )}
+              {editingHeadline && (
+                <div className="space-y-2">
+                  <Input
+                    value={headlineDraft}
+                    onChange={(e) => setHeadlineDraft(e.target.value)}
+                    placeholder="e.g. Thank you for your time!"
+                    maxLength={255}
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => setThankYouHeadline.mutate({ id: surveyIdNum, thankYouHeadline: headlineDraft.trim() || null })}
+                      disabled={setThankYouHeadline.isPending}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      {setThankYouHeadline.isPending ? "Saving…" : "Save"}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditingHeadline(false)}>Cancel</Button>
+                    {(survey as any)?.thankYouHeadline && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-500 hover:text-red-700 ml-auto"
+                        onClick={() => setThankYouHeadline.mutate({ id: surveyIdNum, thankYouHeadline: null })}
+                        disabled={setThankYouHeadline.isPending}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Separator */}
+            <div className="border-t border-gray-100" />
+
+            {/* Closing Message */}
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Closing Message</Label>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    The body text shown beneath the headline on the completion screen.
+                  </p>
+                </div>
+                {!editingClosing && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => {
+                      setClosingDraft((survey as any)?.closingMessage ?? "");
+                      setEditingClosing(true);
+                    }}
+                  >
+                    {(survey as any)?.closingMessage ? "Edit" : "Set message"}
+                  </Button>
+                )}
+              </div>
+              {(survey as any)?.closingMessage && !editingClosing && (
+                <p className="text-sm text-gray-700 italic border-l-2 border-primary pl-3 whitespace-pre-wrap">
+                  {(survey as any).closingMessage}
+                </p>
+              )}
+              {editingClosing && (
+                <div className="space-y-2">
+                  <Textarea
+                    value={closingDraft}
+                    onChange={(e) => setClosingDraft(e.target.value)}
+                    placeholder="e.g. We are deeply grateful — and we are just getting started."
+                    rows={4}
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => setClosingMessage.mutate({ id: surveyIdNum, closingMessage: closingDraft.trim() || null })}
+                      disabled={setClosingMessage.isPending}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      {setClosingMessage.isPending ? "Saving…" : "Save"}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditingClosing(false)}>Cancel</Button>
+                    {(survey as any)?.closingMessage && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-500 hover:text-red-700 ml-auto"
+                        onClick={() => setClosingMessage.mutate({ id: surveyIdNum, closingMessage: null })}
+                        disabled={setClosingMessage.isPending}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
