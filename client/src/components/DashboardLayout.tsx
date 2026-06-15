@@ -160,7 +160,7 @@ function DashboardLayoutContent({
                 <PanelLeft className="h-4 w-4 text-muted-foreground" />
               </button>
               {!isCollapsed && (
-                <span className="font-semibold tracking-tight truncate text-blue-700">{appName}</span>
+                <span className="font-bold tracking-wide truncate text-white text-base">{appName}</span>
               )}
             </div>
           </SidebarHeader>
@@ -225,7 +225,7 @@ function DashboardLayoutContent({
               <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />
               <span className="font-semibold text-sm tracking-tight text-foreground">{activeItem?.label ?? title ?? "Menu"}</span>
             </div>
-            <span className="text-xs text-muted-foreground font-medium">{appName}</span>
+            <span className="text-xs text-foreground font-semibold">{appName}</span>
           </div>
         )}
         <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-x-hidden">{children}</main>
