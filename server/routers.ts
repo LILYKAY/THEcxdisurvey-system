@@ -3,6 +3,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { ENV } from "./_core/env";
 import { sdk } from "./_core/sdk";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -578,6 +579,7 @@ export const appRouter = router({
         const acs = await getAudienceContacts(input.audienceId);
         const brandingRecord = await getEmailBranding(input.organizationId);
         const brandingOpts = { organizationName: org.name, logoUrl: brandingRecord?.logoUrl, primaryColor: brandingRecord?.primaryColor, secondaryColor: brandingRecord?.secondaryColor, signatureTag: brandingRecord?.signatureTag, usePlatformBranding: brandingRecord?.usePlatformBranding };
+        const emailOrigin = ENV.canonicalUrl || input.origin;
         let sent = 0, failed = 0;
         for (const contact of acs) {
           if (input.channel === "email" && !contact.email) continue;
@@ -585,7 +587,7 @@ export const appRouter = router({
           const token = nanoid(32);
           const inv = await createSurveyInvitation({ organizationId: input.organizationId, surveyId: input.surveyId, audienceId: input.audienceId, contactId: contact.id, recipientEmail: contact.email ?? undefined, recipientPhone: contact.phone ?? undefined, recipientName: contact.name ?? undefined, channel: input.channel, inviteToken: token, sentById: ctx.user.id, personalMessage: input.personalMessage });
           if (input.channel === "email" && contact.email) {
-            const ok = await sendSurveyInvitationEmail({ to: contact.email, recipientName: contact.name ?? "Valued Customer", surveyTitle: survey.title, surveyUrl: `${input.origin}/survey/${token}`, organizationName: org.name, senderName: ctx.user.name ?? "CXDi SurveyPro", personalMessage: input.personalMessage, branding: brandingOpts, origin: input.origin });
+            const ok = await sendSurveyInvitationEmail({ to: contact.email, recipientName: contact.name ?? "Valued Customer", surveyTitle: survey.title, surveyUrl: `${emailOrigin}/survey/${token}`, organizationName: org.name, senderName: ctx.user.name ?? "CXDi SurveyPro", personalMessage: input.personalMessage, branding: brandingOpts, origin: emailOrigin });
             if (ok) { await updateInvitationSentStatus(inv.id); sent++; } else { await markInvitationFailed(inv.id); failed++; }
           } else { await updateInvitationSentStatus(inv.id); sent++; }
         }
@@ -602,9 +604,10 @@ export const appRouter = router({
         if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
         const brandingRecord = await getEmailBranding(input.organizationId);
         const brandingOpts = { organizationName: org.name, logoUrl: brandingRecord?.logoUrl, primaryColor: brandingRecord?.primaryColor, secondaryColor: brandingRecord?.secondaryColor, signatureTag: brandingRecord?.signatureTag, usePlatformBranding: brandingRecord?.usePlatformBranding };
+        const emailOrigin = ENV.canonicalUrl || input.origin;
         const token = nanoid(32);
         const inv = await createSurveyInvitation({ organizationId: input.organizationId, surveyId: input.surveyId, recipientEmail: input.recipientEmail, recipientName: input.recipientName, channel: "email", inviteToken: token, sentById: ctx.user.id, personalMessage: input.personalMessage });
-        const ok = await sendSurveyInvitationEmail({ to: input.recipientEmail, recipientName: input.recipientName ?? "Valued Customer", surveyTitle: survey.title, surveyUrl: `${input.origin}/survey/${token}`, organizationName: org.name, senderName: ctx.user.name ?? "CXDi SurveyPro", personalMessage: input.personalMessage, branding: brandingOpts, origin: input.origin });
+        const ok = await sendSurveyInvitationEmail({ to: input.recipientEmail, recipientName: input.recipientName ?? "Valued Customer", surveyTitle: survey.title, surveyUrl: `${emailOrigin}/survey/${token}`, organizationName: org.name, senderName: ctx.user.name ?? "CXDi SurveyPro", personalMessage: input.personalMessage, branding: brandingOpts, origin: emailOrigin });
         if (ok) await updateInvitationSentStatus(inv.id); else await markInvitationFailed(inv.id);
         return { success: ok };
       }),
