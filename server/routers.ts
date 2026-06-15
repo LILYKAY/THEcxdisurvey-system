@@ -95,7 +95,7 @@ import {
   revokeOrgManager,
 } from "./db";
 import { sendSurveyInvitationEmail, sendReportEmail, sendPasswordResetEmail } from "./email";
-import { generatePdfFromHtml, buildSurveyReportHtml } from "./pdf";
+import { generateSurveyPdf, type PdfReportOptions } from "./pdf";
 
 async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
@@ -558,9 +558,46 @@ export const appRouter = router({
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
       const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
       if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
-      const responses = await getSurveyResponsesBySurvey(input.surveyId);
-      const html = buildSurveyReportHtml({ orgName: org.name, surveyTitle: survey.title, formKey: survey.joinCode ?? "custom", generatedAt: new Date(), stats: { totalResponses: responses.length, completedResponses: responses.filter((r: any) => r.isComplete).length, completionRate: responses.length > 0 ? Math.round((responses.filter((r: any) => r.isComplete).length / responses.length) * 100) : 0 }, questionInsights: [] });
-      const pdfBuffer = await generatePdfFromHtml(html);
+      const [responses, questions, invitations] = await Promise.all([
+        getSurveyResponsesBySurvey(input.surveyId),
+        getSurveyQuestions(input.surveyId),
+        getInvitationsBySurvey(org.id, input.surveyId),
+      ]);
+      const allAnswers = (await Promise.all(responses.map((r: any) => getAnswersByResponse(r.id)))).flat();
+      const questionInsights: PdfReportOptions["questionInsights"] = questions.map((q: any) => {
+        const answers = allAnswers.filter((a: any) => a.questionKey === q.questionKey);
+        const isChoice = ["multiple_choice_single","multiple_choice_multi","yes_no","nps","csat","ces_5","ces_7","range_0_10"].includes(q.questionType);
+        const isOpen = ["open_ended","nps_comment"].includes(q.questionType);
+        const openEndedResponses = isOpen ? answers.map((a: any) => a.answerText ?? "").filter(Boolean) : undefined;
+        let choiceBreakdown: PdfReportOptions["questionInsights"][0]["choiceBreakdown"] | undefined;
+        let npsScore: number | null = null;
+        if (isChoice) {
+          const qOpts = (q.options as Array<{ value: string; label: string }> | null) ?? [];
+          if (qOpts.length > 0) {
+            const total = answers.length;
+            choiceBreakdown = qOpts.map((o) => {
+              const count = answers.filter((a: any) => a.answerText === o.value || a.answerText === o.label).length;
+              return { option: o.label, count, percentage: total > 0 ? Math.round((count / total) * 100) : 0 };
+            }).filter((c) => c.count > 0);
+          }
+          if (q.questionType === "nps" && answers.length > 0) {
+            const nums = answers.map((a: any) => Number(a.answerText)).filter((n: number) => !isNaN(n));
+            if (nums.length > 0) {
+              const promoters = nums.filter((n: number) => n >= 9).length;
+              const detractors = nums.filter((n: number) => n <= 6).length;
+              npsScore = Math.round(((promoters - detractors) / nums.length) * 100);
+            }
+          }
+        }
+        return { questionKey: q.questionKey, questionText: q.questionText, questionType: q.questionType, totalAnswers: answers.length, openEndedResponses, choiceBreakdown, npsScore };
+      });
+      const completedResponses = responses.filter((r: any) => r.isComplete);
+      const pdfBuffer = await generateSurveyPdf({
+        orgName: org.name, surveyTitle: survey.title, formKey: survey.joinCode ?? "custom", generatedAt: new Date(),
+        stats: { totalResponses: responses.length, completedResponses: completedResponses.length, completionRate: responses.length > 0 ? Math.round((completedResponses.length / responses.length) * 100) : 0 },
+        questionInsights,
+        invitationStats: { totalSent: invitations.length, opened: invitations.filter((i: any) => i.openedAt).length, completed: invitations.filter((i: any) => i.completedAt).length },
+      });
       return { pdf: pdfBuffer.toString("base64") };
     }),
   }),
@@ -871,12 +908,48 @@ export const appRouter = router({
       if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
       const org = await getOrganizationById(survey.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      const responses = await getSurveyResponsesBySurvey(input.surveyId);
-      const html = buildSurveyReportHtml({ orgName: org.name, surveyTitle: survey.title, formKey: survey.joinCode ?? "custom", generatedAt: new Date(), stats: { totalResponses: responses.length, completedResponses: responses.filter((r: any) => r.isComplete).length, completionRate: responses.length > 0 ? Math.round((responses.filter((r: any) => r.isComplete).length / responses.length) * 100) : 0 }, questionInsights: [] });
-      const pdfBuffer = await generatePdfFromHtml(html);
+            const [responses, questions, invitations] = await Promise.all([
+        getSurveyResponsesBySurvey(input.surveyId),
+        getSurveyQuestions(input.surveyId),
+        getInvitationsBySurvey(org.id, input.surveyId),
+      ]);
+      const allAnswers = (await Promise.all(responses.map((r: any) => getAnswersByResponse(r.id)))).flat();
+      const questionInsights: PdfReportOptions["questionInsights"] = questions.map((q: any) => {
+        const answers = allAnswers.filter((a: any) => a.questionKey === q.questionKey);
+        const isChoice = ["multiple_choice_single","multiple_choice_multi","yes_no","nps","csat","ces_5","ces_7","range_0_10"].includes(q.questionType);
+        const isOpen = ["open_ended","nps_comment"].includes(q.questionType);
+        const openEndedResponses = isOpen ? answers.map((a: any) => a.answerText ?? "").filter(Boolean) : undefined;
+        let choiceBreakdown: PdfReportOptions["questionInsights"][0]["choiceBreakdown"] | undefined;
+        let npsScore: number | null = null;
+        if (isChoice) {
+          const qOpts = (q.options as Array<{ value: string; label: string }> | null) ?? [];
+          if (qOpts.length > 0) {
+            const total = answers.length;
+            choiceBreakdown = qOpts.map((o) => {
+              const count = answers.filter((a: any) => a.answerText === o.value || a.answerText === o.label).length;
+              return { option: o.label, count, percentage: total > 0 ? Math.round((count / total) * 100) : 0 };
+            }).filter((c) => c.count > 0);
+          }
+          if (q.questionType === "nps" && answers.length > 0) {
+            const nums = answers.map((a: any) => Number(a.answerText)).filter((n: number) => !isNaN(n));
+            if (nums.length > 0) {
+              const promoters = nums.filter((n: number) => n >= 9).length;
+              const detractors = nums.filter((n: number) => n <= 6).length;
+              npsScore = Math.round(((promoters - detractors) / nums.length) * 100);
+            }
+          }
+        }
+        return { questionKey: q.questionKey, questionText: q.questionText, questionType: q.questionType, totalAnswers: answers.length, openEndedResponses, choiceBreakdown, npsScore };
+      });
+      const completedResponses = responses.filter((r: any) => r.isComplete);
+      const pdfBuffer = await generateSurveyPdf({
+        orgName: org.name, surveyTitle: survey.title, formKey: survey.joinCode ?? "custom", generatedAt: new Date(),
+        stats: { totalResponses: responses.length, completedResponses: completedResponses.length, completionRate: responses.length > 0 ? Math.round((completedResponses.length / responses.length) * 100) : 0 },
+        questionInsights,
+        invitationStats: { totalSent: invitations.length, opened: invitations.filter((i: any) => i.openedAt).length, completed: invitations.filter((i: any) => i.completedAt).length },
+      });
       return { pdf: pdfBuffer.toString("base64") };
     }),
   }),
 });
-
 export type AppRouter = typeof appRouter;

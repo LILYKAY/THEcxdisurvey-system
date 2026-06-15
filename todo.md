@@ -300,3 +300,7 @@
 - [x] SurveyPage: already mobile-optimized with flex-col-reverse nav buttons
 - [x] Home landing page: responsive hero font sizes, full-width CTA, reduced section padding
 - [x] Admin pages: AdminRespondents table hides columns on mobile, AdminSurveyInsights header truncation fixed
+
+## Phase 27: PDF Report Layout Improvement
+- [x] Rewrite server/pdf.ts with pdfkit structured layout: branded header, stat cards, invitation summary, per-question breakdowns with bar charts
+- [x] Update routers.ts PDF call sites to pass full question insight data (choice breakdowns, open-ended responses)
