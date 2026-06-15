@@ -107,7 +107,7 @@ export default function Home() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <BarChart3 className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="font-serif text-lg font-semibold text-foreground">SurveyPro</span>
+            <span className="font-serif text-lg font-semibold text-foreground">TheCxdi Surveys</span>
           </div>
           <nav className="hidden items-center gap-8 md:flex">
             <a href="#features" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
@@ -278,10 +278,10 @@ export default function Home() {
             <div className="flex h-6 w-6 items-center justify-center rounded bg-primary">
               <BarChart3 className="h-3 w-3 text-primary-foreground" />
             </div>
-            <span className="text-sm font-medium text-foreground">SurveyPro</span>
+            <span className="text-sm font-medium text-foreground">TheCxdi Surveys</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} SurveyPro. Built for Africa's business ecosystem.
+            © {new Date().getFullYear()} TheCxdi Surveys. Built for Africa's business ecosystem.
           </p>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
