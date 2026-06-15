@@ -52,7 +52,7 @@ export default function Login() {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-primary">
             <BarChart3 className="h-5 w-5 text-sidebar-primary-foreground" />
           </div>
-          <span className="font-serif text-2xl font-semibold">SurveyPro</span>
+          <span className="font-serif text-2xl font-semibold">The CXDi Surveys</span>
         </div>
 
         <div className="space-y-6">
@@ -82,7 +82,7 @@ export default function Login() {
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
             <BarChart3 className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="font-serif text-xl font-semibold text-foreground">SurveyPro</span>
+          <span className="font-serif text-xl font-semibold text-foreground">The CXDi Surveys</span>
         </div>
 
         <div className="w-full max-w-sm">
