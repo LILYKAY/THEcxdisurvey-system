@@ -104,7 +104,7 @@ export default function AcceptInvite() {
           </div>
           <CardTitle className="text-xl">Accept Invitation</CardTitle>
           <CardDescription>
-            You've been invited to manage <strong>{invite.orgName}</strong> on CXDi SurveyPro.
+            You've been invited to manage <strong>{invite.orgName}</strong> on The CXDi Surveys.
           </CardDescription>
         </CardHeader>
         <CardContent>

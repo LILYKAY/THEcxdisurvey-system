@@ -13,7 +13,7 @@ export default function SurveyComplete() {
             <div className="flex h-7 w-7 items-center justify-center rounded bg-primary">
               <BarChart3 className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
-            <span className="font-serif text-base font-semibold text-foreground">SurveyPro</span>
+            <span className="font-serif text-base font-semibold text-foreground">The CXDi Surveys</span>
           </div>
         </div>
       </header>

@@ -65,7 +65,7 @@ export default function OrgManagers() {
 
   return (
     <DashboardLayout
-      appName="CXDi SurveyPro"
+      appName="The CXDi Surveys"
       navItems={navItems}
     >
       <div className="p-6 max-w-3xl">

@@ -50,7 +50,7 @@ function EmailPreview({
             </div>
           )}
           <span className="text-white font-semibold text-base">
-            {usePlatformBranding ? "CXDi SurveyPro" : orgName}
+            {usePlatformBranding ? "The CXDi Surveys" : orgName}
           </span>
         </div>
 
@@ -83,7 +83,7 @@ function EmailPreview({
           className="px-6 py-3 border-t border-gray-100 flex items-center justify-between"
         >
           <span className="text-gray-400 text-xs">
-            {signatureTag || (usePlatformBranding ? "Powered by CXDi SurveyPro" : orgName)}
+            {signatureTag || (usePlatformBranding ? "Powered by The CXDi Surveys" : orgName)}
           </span>
           <span className="text-gray-300 text-xs">Unsubscribe</span>
         </div>
@@ -328,7 +328,7 @@ export default function OrgEmailBranding() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Branding Mode</CardTitle>
                 <CardDescription className="text-xs">
-                  Choose whether to show CXDi SurveyPro branding or your own organisation's branding
+                  Choose whether to show The CXDi Surveys branding or your own organisation's branding
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -337,7 +337,7 @@ export default function OrgEmailBranding() {
                     <p className="text-sm font-medium text-gray-800">Use Platform Branding</p>
                     <p className="text-xs text-gray-500 mt-0.5">
                       {usePlatformBranding
-                        ? "Emails will show \"CXDi SurveyPro\" in the header"
+                        ? "Emails will show \"The CXDi Surveys\" in the header"
                         : "Emails will show your organisation name and logo"}
                     </p>
                   </div>
@@ -480,7 +480,7 @@ export default function OrgEmailBranding() {
                 <Input
                   value={signatureTag}
                   onChange={(e) => setSignatureTag(e.target.value)}
-                  placeholder={usePlatformBranding ? "Powered by CXDi SurveyPro" : org?.name ?? "Your Organisation"}
+                  placeholder={usePlatformBranding ? "Powered by The CXDi Surveys" : org?.name ?? "Your Organisation"}
                   maxLength={120}
                   className="text-sm"
                 />

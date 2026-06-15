@@ -50,7 +50,7 @@ export default function DashboardLayout({
   children,
   navItems,
   title,
-  appName = "CXDi SurveyPro",
+  appName = "The CXDi Surveys",
 }: DashboardLayoutProps) {
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
@@ -108,7 +108,7 @@ function DashboardLayoutContent({
   setSidebarWidth,
   navItems = [],
   title,
-  appName = "CXDi SurveyPro",
+  appName = "The CXDi Surveys",
 }: DashboardLayoutContentProps) {
   const { user, logout } = useAuth();
   const [location, setLocation] = useLocation();
