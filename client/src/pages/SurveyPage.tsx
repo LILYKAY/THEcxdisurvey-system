@@ -580,9 +580,9 @@ export default function SurveyPage() {
       <div className="min-h-screen bg-background">
         <header className="border-b border-border bg-card/80 sticky top-0 z-10">
           <div className="container flex h-14 items-center justify-between">
-            <div className="flex items-center">
+            <a href="/" className="flex items-center">
               <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-8 w-auto" />
-            </div>
+            </a>
           </div>
         </header>
         <div className="container max-w-2xl py-10">

@@ -48,7 +48,9 @@ function SidebarContent({
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       {/* Logo */}
       <div className="flex h-16 items-center border-b border-sidebar-border px-5 flex-shrink-0">
-        <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-8 w-auto" />
+        <Link href="/" onClick={onNavClick} className="flex items-center cursor-pointer">
+          <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-8 w-auto" />
+        </Link>
       </div>
 
       {/* Nav */}
@@ -186,9 +188,9 @@ export function DashboardShell({ children, navItems, title }: DashboardShellProp
 
           {/* Mobile logo (when no title) */}
           {!title && (
-            <div className="flex md:hidden items-center">
+            <Link href="/" className="flex md:hidden items-center cursor-pointer">
               <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-7 w-auto" />
-            </div>
+            </Link>
           )}
         </header>
 

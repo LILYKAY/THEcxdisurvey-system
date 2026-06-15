@@ -9,9 +9,9 @@ export default function SurveyComplete() {
     <div className="flex min-h-screen flex-col bg-background">
       <header className="border-b border-border bg-card/80 backdrop-blur-md">
         <div className="container flex h-14 items-center">
-          <div className="flex items-center">
+          <a href="/" className="flex items-center">
             <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-8 w-auto" />
-          </div>
+          </a>
         </div>
       </header>
 
