@@ -45,9 +45,7 @@ function resolveBranding(b: EmailBrandingOptions) {
   const primary = b.primaryColor?.trim() || DEFAULT_PRIMARY_COLOR;
   const secondary = b.secondaryColor?.trim() || DEFAULT_SECONDARY_COLOR;
   const senderLabel = b.usePlatformBranding ? DEFAULT_PLATFORM_NAME : b.organizationName;
-  const footer = b.signatureTag?.trim() || (b.usePlatformBranding
-    ? `Powered by ${DEFAULT_PLATFORM_NAME}`
-    : b.organizationName);
+  const footer = b.signatureTag?.trim() || `Powered by ${DEFAULT_PLATFORM_NAME}`;
   return { primary, secondary, senderLabel, footer, logoUrl: b.logoUrl ?? null };
 }
 
