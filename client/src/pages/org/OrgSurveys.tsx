@@ -17,7 +17,6 @@ export default function OrgSurveys() {
   const orgIdNum = parseInt(orgId ?? "0");
   const [, navigate] = useLocation();
   const utils = trpc.useUtils();
-
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");

@@ -274,3 +274,10 @@
 - [x] Frontend: /invite/:token page — accept invite form (name + password)
 - [x] Frontend: Login page supports org_manager role and redirects to their org dashboard
 - [x] Frontend: Org manager dashboard (scoped to their org, no create/delete org)
+
+## Phase 25: Org Manager Full Access
+
+- [x] Server: 37 survey/question/send/analytics procedures updated with isOrgMgr check — org_manager users can create, view, send, and analyse surveys for their assigned org
+- [x] Frontend: OrgSurveys.tsx — org_manager has full access including "New Survey" button (no restrictions)
+- [x] TypeScript: zero errors
+- [x] Tests: 15/15 passing

@@ -258,7 +258,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.id);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         const { id, ...data } = input;
         await updateOrganization(id, data);
         return { success: true };
@@ -311,7 +312,8 @@ export const appRouter = router({
     get: protectedProcedure.input(z.object({ organizationId: z.number() })).query(async ({ input, ctx }) => {
       const org = await getOrganizationById(input.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
       return getEmailBranding(input.organizationId);
     }),
     upsert: protectedProcedure
@@ -319,7 +321,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         await upsertEmailBranding(input);
         return { success: true };
       }),
@@ -329,7 +332,8 @@ export const appRouter = router({
     list: protectedProcedure.input(z.object({ organizationId: z.number() })).query(async ({ input, ctx }) => {
       const org = await getOrganizationById(input.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
       return getContactsByOrg(input.organizationId);
     }),
     create: protectedProcedure
@@ -337,7 +341,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         const currentCount = await countContactsByOrg(input.organizationId);
         if (currentCount >= 1500) throw new TRPCError({ code: "BAD_REQUEST", message: "Contact limit of 1,500 reached" });
         return createContact({ ...input, tags: input.tags ?? null });
@@ -347,7 +352,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         const currentCount = await countContactsByOrg(input.organizationId);
         const remaining = 1500 - currentCount;
         const toInsert = input.contacts.slice(0, remaining).map((c) => ({ ...c, organizationId: input.organizationId, tags: null }));
@@ -359,7 +365,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         const { id, organizationId, ...data } = input;
         await updateContact(id, { ...data, tags: data.tags ?? null });
         return { success: true };
@@ -369,7 +376,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         await deleteContact(input.id);
         return { success: true };
       }),
@@ -379,7 +387,8 @@ export const appRouter = router({
     list: protectedProcedure.input(z.object({ organizationId: z.number() })).query(async ({ input, ctx }) => {
       const org = await getOrganizationById(input.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
       const auds = await getAudiencesByOrg(input.organizationId);
       return Promise.all(auds.map(async (a) => ({ ...a, contactCount: await countAudienceContacts(a.id) })));
     }),
@@ -388,7 +397,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         return createAudience(input);
       }),
     delete: protectedProcedure
@@ -396,14 +406,16 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         await deleteAudience(input.id);
         return { success: true };
       }),
     getContacts: protectedProcedure.input(z.object({ audienceId: z.number(), organizationId: z.number() })).query(async ({ input, ctx }) => {
       const org = await getOrganizationById(input.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
       return getAudienceContacts(input.audienceId);
     }),
     addContacts: protectedProcedure
@@ -411,7 +423,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         await addContactsToAudience(input.audienceId, input.contactIds);
         return { success: true };
       }),
@@ -420,7 +433,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         await removeContactFromAudience(input.audienceId, input.contactId);
         return { success: true };
       }),
@@ -430,7 +444,8 @@ export const appRouter = router({
     list: protectedProcedure.input(z.object({ organizationId: z.number() })).query(async ({ input, ctx }) => {
       const org = await getOrganizationById(input.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
       return getSurveysByOrg(input.organizationId);
     }),
     get: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ input, ctx }) => {
@@ -438,7 +453,8 @@ export const appRouter = router({
       if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
       const org = await getOrganizationById(survey.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
       return survey;
     }),
     create: protectedProcedure
@@ -446,7 +462,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         return createSurveyRecord(input);
       }),
     activate: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ input, ctx }) => {
@@ -454,7 +471,8 @@ export const appRouter = router({
       if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
       const org = await getOrganizationById(survey.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
       await updateSurvey(input.id, { status: "active" } as any);
       return { success: true };
     }),
@@ -463,7 +481,8 @@ export const appRouter = router({
       if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
       const org = await getOrganizationById(survey.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
       await updateSurvey(input.id, { status: "inactive" } as any);
       return { success: true };
     }),
@@ -474,7 +493,8 @@ export const appRouter = router({
         if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
         const org = await getOrganizationById(survey.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         await updateSurvey(input.id, { expiresAt: input.expiresAt } as any);
         return { success: true };
       }),
@@ -485,7 +505,8 @@ export const appRouter = router({
         if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
         const org = await getOrganizationById(survey.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         await updateSurvey(input.id, { thankYouHeadline: input.thankYouHeadline } as any);
         return { success: true };
       }),
@@ -496,7 +517,8 @@ export const appRouter = router({
         if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
         const org = await getOrganizationById(survey.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         await updateSurvey(input.id, { closingMessage: input.closingMessage } as any);
         return { success: true };
       }),
@@ -506,7 +528,8 @@ export const appRouter = router({
       if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
       const org = await getOrganizationById(survey.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
       return getSurveyResponsesBySurvey(input.surveyId);
     }),
     getLinks: protectedProcedure.input(z.object({ surveyId: z.number() })).query(async ({ input, ctx }) => {
@@ -514,7 +537,8 @@ export const appRouter = router({
       if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
       const org = await getOrganizationById(survey.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
       return getSurveyLinksBySurvey(input.surveyId);
     }),
     createLink: protectedProcedure.input(z.object({ surveyId: z.number(), label: z.string().optional() })).mutation(async ({ input, ctx }) => {
@@ -522,7 +546,8 @@ export const appRouter = router({
       if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
       const org = await getOrganizationById(survey.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
       const token = nanoid(32);
       return createSurveyLink({ surveyId: input.surveyId, token, label: input.label });
     }),
@@ -531,7 +556,8 @@ export const appRouter = router({
       if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
       const org = await getOrganizationById(survey.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
       const responses = await getSurveyResponsesBySurvey(input.surveyId);
       const html = buildSurveyReportHtml({ orgName: org.name, surveyTitle: survey.title, formKey: survey.joinCode ?? "custom", generatedAt: new Date(), stats: { totalResponses: responses.length, completedResponses: responses.filter((r: any) => r.isComplete).length, completionRate: responses.length > 0 ? Math.round((responses.filter((r: any) => r.isComplete).length / responses.length) * 100) : 0 }, questionInsights: [] });
       const pdfBuffer = await generatePdfFromHtml(html);
@@ -545,7 +571,8 @@ export const appRouter = router({
       if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
       const org = await getOrganizationById(survey.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
       return getSurveyQuestions(input.surveyId);
     }),
     create: protectedProcedure
@@ -553,7 +580,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         return createSurveyQuestion({ ...input, options: input.options ?? null, branchingLogic: null });
       }),
     update: protectedProcedure
@@ -561,7 +589,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         const { id, organizationId, ...data } = input;
         await updateSurveyQuestion(id, { ...data, options: data.options ?? null });
         return { success: true };
@@ -571,7 +600,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         await deleteSurveyQuestion(input.id);
         return { success: true };
       }),
@@ -580,7 +610,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         await reorderSurveyQuestions(input.questionIds);
         return { success: true };
       }),
@@ -592,7 +623,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         if (org.isRestricted) throw new TRPCError({ code: "FORBIDDEN", message: "Account is restricted" });
         const survey = await getSurveyById(input.surveyId);
         if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
@@ -618,7 +650,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         if (org.isRestricted) throw new TRPCError({ code: "FORBIDDEN", message: "Account is restricted" });
         const survey = await getSurveyById(input.surveyId);
         if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
@@ -710,7 +743,8 @@ export const appRouter = router({
     list: protectedProcedure.input(z.object({ organizationId: z.number() })).query(async ({ input, ctx }) => {
       const org = await getOrganizationById(input.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
       return getRespondentsByOrg(input.organizationId);
     }),
     getAnswers: protectedProcedure.input(z.object({ responseId: z.number() })).query(async ({ input }) => {
@@ -725,7 +759,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         const token = nanoid(48);
         const expiresAt = new Date(Date.now() + 7 * 24 * 3600000); // 7 days
         await createOrgManagerInvite({ organizationId: input.organizationId, email: input.email, name: input.name, token, invitedById: ctx.user.id, expiresAt });
@@ -789,7 +824,8 @@ export const appRouter = router({
       .query(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         const [managers, invites] = await Promise.all([
           getOrgManagersByOrg(input.organizationId),
           getOrgManagerInvitesByOrg(input.organizationId),
@@ -803,7 +839,8 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const org = await getOrganizationById(input.organizationId);
         if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         await revokeOrgManager(input.userId);
         return { success: true };
       }),
