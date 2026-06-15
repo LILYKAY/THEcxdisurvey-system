@@ -281,3 +281,22 @@
 - [x] Frontend: OrgSurveys.tsx — org_manager has full access including "New Survey" button (no restrictions)
 - [x] TypeScript: zero errors
 - [x] Tests: 15/15 passing
+
+## Phase 26: Mobile Optimization (Full Audit)
+
+- [x] DashboardShell: improve mobile sidebar overlay, touch targets, header spacing
+- [x] DashboardLayout: ensure content area has correct padding on small screens (p-3 sm:p-4 md:p-6)
+- [x] OrgDashboard: stack cards vertically, fix chart overflow, improve stat cards
+- [x] OrgSurveys: survey cards — wrap action buttons, improve touch targets
+- [x] OrgSurveyBuilder: question list, add-question button, settings panel on mobile
+- [x] OrgSendSurvey: step flow, audience selector, preview on mobile
+- [x] OrgAnalytics: charts responsive, filter controls stack on mobile
+- [x] OrgContacts: table — hide secondary columns on mobile, compact action buttons
+- [x] OrgAudiences: audience cards responsive, expanded members table hides columns on mobile
+- [x] OrgManagers: invite form, managers list on mobile — responsive header, stacked cards
+- [x] OrgSettings: settings grid stacks on mobile, taller inputs
+- [x] Login/Signup/ForgotPassword: already mobile-optimized with split auth layout
+- [x] AcceptInvite: taller inputs and submit button for mobile touch targets
+- [x] SurveyPage: already mobile-optimized with flex-col-reverse nav buttons
+- [x] Home landing page: responsive hero font sizes, full-width CTA, reduced section padding
+- [x] Admin pages: AdminRespondents table hides columns on mobile, AdminSurveyInsights header truncation fixed

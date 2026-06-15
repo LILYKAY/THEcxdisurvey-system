@@ -68,25 +68,26 @@ export default function OrgManagers() {
       appName="The CXDi Surveys"
       navItems={navItems}
     >
-      <div className="p-6 max-w-3xl">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold">Managers</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Invite people to manage <strong>{org?.name}</strong>. Managers can send surveys, view responses, and manage contacts — but cannot create new organizations.
+      <div className="max-w-3xl space-y-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold">Managers</h1>
+            <p className="text-muted-foreground text-sm mt-0.5">
+              Invite people to manage <strong>{org?.name}</strong>.
             </p>
           </div>
           <Button
-            className="bg-[#03989e] hover:bg-[#027a7f] text-white"
+            className="bg-[#03989e] hover:bg-[#027a7f] text-white h-10 px-3 gap-1.5 shrink-0"
             onClick={() => setShowInviteDialog(true)}
           >
-            <UserPlus size={16} className="mr-2" />
-            Invite Manager
+            <UserPlus size={16} />
+            <span className="hidden sm:inline">Invite Manager</span>
+            <span className="sm:hidden">Invite</span>
           </Button>
         </div>
 
         {/* Active Managers */}
-        <Card className="mb-6">
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Active Managers</CardTitle>
             <CardDescription>People with manager access to this organization</CardDescription>
@@ -129,7 +130,7 @@ export default function OrgManagers() {
         </Card>
 
         {/* Pending Invites */}
-        <Card>
+        <Card className="mt-0">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Pending Invitations</CardTitle>
             <CardDescription>Invites that have been sent but not yet accepted</CardDescription>
@@ -174,7 +175,7 @@ export default function OrgManagers() {
 
         {/* Accepted Invites (history) */}
         {managersData && managersData.invites.filter(i => i.acceptedAt).length > 0 && (
-          <Card className="mt-6">
+          <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Accepted Invitations</CardTitle>
             </CardHeader>

@@ -192,8 +192,8 @@ export default function OrgContacts() {
             {/* Bulk Import */}
             <Dialog open={showBulk} onOpenChange={(open) => { setShowBulk(open); if (!open) resetBulk(); }}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/5">
-                  <Upload className="w-4 h-4 mr-2" /> Bulk Import
+                <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/5 h-10 px-3">
+                  <Upload className="w-4 h-4" /><span className="hidden sm:inline ml-2">Bulk Import</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl">
@@ -290,7 +290,9 @@ export default function OrgContacts() {
             {/* Single Add */}
             <Dialog open={showAdd} onOpenChange={setShowAdd}>
               <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground"><Plus className="w-4 h-4 mr-2" /> Add Contact</Button>
+                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-3 gap-1.5">
+                  <Plus className="w-4 h-4" /><span className="hidden sm:inline">Add Contact</span><span className="sm:hidden">Add</span>
+                </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader><DialogTitle>Add New Contact</DialogTitle></DialogHeader>
@@ -320,9 +322,9 @@ export default function OrgContacts() {
 
         {/* Selection toolbar */}
         {selected.size > 0 && (
-          <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
-            <span className="text-sm font-medium text-primary">{selected.size} contact{selected.size !== 1 ? "s" : ""} selected</span>
-            <div className="flex items-center gap-2 ml-auto">
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2.5">
+            <span className="text-sm font-medium text-primary flex-1">{selected.size} selected</span>
+            <div className="flex items-center gap-2">
               {/* Create new audience */}
               <Dialog open={showCreateAud} onOpenChange={setShowCreateAud}>
                 <DialogTrigger asChild>

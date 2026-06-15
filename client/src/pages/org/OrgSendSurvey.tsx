@@ -103,18 +103,16 @@ export default function OrgSendSurvey() {
         </div>
 
         <Tabs defaultValue="audience">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="audience" className="gap-1 text-xs sm:text-sm">
+          <TabsList className="grid w-full grid-cols-3 h-11">
+            <TabsTrigger value="audience" className="gap-1.5 text-xs sm:text-sm">
               <Users className="w-4 h-4 shrink-0" />
-              <span className="hidden xs:inline">Audience</span>
-              <span className="xs:hidden">Group</span>
+              <span>Audience</span>
             </TabsTrigger>
-            <TabsTrigger value="email" className="gap-1 text-xs sm:text-sm">
+            <TabsTrigger value="email" className="gap-1.5 text-xs sm:text-sm">
               <Mail className="w-4 h-4 shrink-0" />
-              <span className="hidden xs:inline">Single Email</span>
-              <span className="xs:hidden">Email</span>
+              <span>Email</span>
             </TabsTrigger>
-            <TabsTrigger value="link" className="gap-1 text-xs sm:text-sm">
+            <TabsTrigger value="link" className="gap-1.5 text-xs sm:text-sm">
               <Link2 className="w-4 h-4 shrink-0" />
               <span>Link</span>
             </TabsTrigger>
@@ -159,7 +157,7 @@ export default function OrgSendSurvey() {
                 <Button
                   onClick={() => sendToAudience.mutate({ organizationId: orgIdNum, surveyId: surveyIdNum, audienceId: parseInt(selectedAudience), channel, personalMessage: personalMessage || undefined, origin: window.location.origin })}
                   disabled={!selectedAudience || sendToAudience.isPending}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white h-11"
                 >
                   <Send className="w-4 h-4 mr-2" />
                   {sendToAudience.isPending ? "Sending..." : "Send to Audience"}
@@ -176,16 +174,16 @@ export default function OrgSendSurvey() {
               <CardContent className="space-y-4">
                 <div>
                   <Label>Recipient Email</Label>
-                  <Input type="email" value={singleEmail} onChange={(e) => setSingleEmail(e.target.value)} placeholder="recipient@example.com" />
+                  <Input type="email" value={singleEmail} onChange={(e) => setSingleEmail(e.target.value)} placeholder="recipient@example.com" className="h-11" />
                 </div>
                 <div>
                   <Label>Recipient Name (optional)</Label>
-                  <Input value={singleName} onChange={(e) => setSingleName(e.target.value)} placeholder="John Doe" />
+                  <Input value={singleName} onChange={(e) => setSingleName(e.target.value)} placeholder="John Doe" className="h-11" />
                 </div>
                 <Button
                   onClick={() => sendToEmail.mutate({ organizationId: orgIdNum, surveyId: surveyIdNum, recipientEmail: singleEmail, recipientName: singleName || undefined, origin: window.location.origin })}
                   disabled={!singleEmail || sendToEmail.isPending}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white h-11"
                 >
                   <Send className="w-4 h-4 mr-2" />
                   {sendToEmail.isPending ? "Sending..." : "Send Email"}

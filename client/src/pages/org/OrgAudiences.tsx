@@ -251,13 +251,14 @@ export default function OrgAudiences() {
                         </Button>
                       </div>
                     ) : (
-                      <Table>
+                        <div className="overflow-x-auto">
+                        <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Name</TableHead>
                             <TableHead>Email</TableHead>
-                            <TableHead>Phone</TableHead>
-                            <TableHead>Channel</TableHead>
+                            <TableHead className="hidden sm:table-cell">Phone</TableHead>
+                            <TableHead className="hidden sm:table-cell">Channel</TableHead>
                             <TableHead className="w-12"></TableHead>
                           </TableRow>
                         </TableHeader>
@@ -266,8 +267,8 @@ export default function OrgAudiences() {
                             <TableRow key={m.id}>
                               <TableCell className="font-medium text-sm">{m.name ?? "—"}</TableCell>
                               <TableCell className="text-sm">{m.email ?? "—"}</TableCell>
-                              <TableCell className="text-sm">{m.phone ?? "—"}</TableCell>
-                              <TableCell><Badge variant="outline" className="capitalize text-xs text-primary border-primary/30">{m.preferredChannel ?? "email"}</Badge></TableCell>
+                              <TableCell className="text-sm hidden sm:table-cell">{m.phone ?? "—"}</TableCell>
+                              <TableCell className="hidden sm:table-cell"><Badge variant="outline" className="capitalize text-xs text-primary border-primary/30">{m.preferredChannel ?? "email"}</Badge></TableCell>
                               <TableCell>
                                 <Button variant="ghost" size="sm" onClick={() => removeContact.mutate({ audienceId: a.id, contactId: m.id, organizationId: orgIdNum })} className="text-muted-foreground hover:text-destructive hover:bg-destructive/10">
                                   <X className="w-3.5 h-3.5" />
@@ -277,6 +278,7 @@ export default function OrgAudiences() {
                           ))}
                         </TableBody>
                       </Table>
+                      </div>
                     )}
                   </div>
                 )}

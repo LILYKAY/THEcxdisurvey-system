@@ -111,7 +111,7 @@ export default function AcceptInvite() {
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={invite.email} disabled className="bg-muted" />
+              <Input id="email" type="email" value={invite.email} disabled className="bg-muted h-11" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="name">Your Name</Label>
@@ -135,7 +135,7 @@ export default function AcceptInvite() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={8}
-                  className="pr-10"
+                  className="pr-10 h-11"
                 />
                 <button
                   type="button"
@@ -169,7 +169,7 @@ export default function AcceptInvite() {
 
             <Button
               type="submit"
-              className="w-full bg-[#03989e] hover:bg-[#027a7f] text-white"
+              className="w-full bg-[#03989e] hover:bg-[#027a7f] text-white h-11"
               disabled={acceptMutation.isPending || password !== confirmPassword || !password || !name}
             >
               {acceptMutation.isPending ? <Spinner className="mr-2" /> : null}

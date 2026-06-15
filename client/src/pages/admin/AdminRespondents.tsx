@@ -58,14 +58,15 @@ export default function AdminRespondents() {
           </div>
         ) : (
           <div className="rounded-xl border border-border bg-card shadow-elegant overflow-hidden">
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-secondary/30">
                   <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Country</TableHead>
-                  <TableHead>Registered</TableHead>
+                  <TableHead className="hidden sm:table-cell">Email</TableHead>
+                  <TableHead className="hidden md:table-cell">Company</TableHead>
+                  <TableHead className="hidden md:table-cell">Country</TableHead>
+                  <TableHead className="hidden sm:table-cell">Registered</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -75,21 +76,25 @@ export default function AdminRespondents() {
                     className="cursor-pointer hover:bg-secondary/20"
                     onClick={() => navigate(`/admin/respondents/${r.id}`)}
                   >
-                    <TableCell className="font-medium">{r.name ?? "—"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{r.email ?? "—"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{r.company ?? "—"}</TableCell>
                     <TableCell>
+                      <div className="font-medium">{r.name ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground sm:hidden">{r.email ?? ""}</div>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">{r.email ?? "—"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{r.company ?? "—"}</TableCell>
+                    <TableCell className="hidden md:table-cell">
                       {r.country ? (
                         <Badge variant="secondary" className="text-xs">{r.country}</Badge>
                       ) : "—"}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">
                       {new Date(r.createdAt).toLocaleDateString()}
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            </div>
           </div>
         )}
       </div>

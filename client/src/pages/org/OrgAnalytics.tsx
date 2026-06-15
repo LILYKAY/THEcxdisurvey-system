@@ -44,7 +44,7 @@ export default function OrgAnalytics() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
@@ -89,7 +89,7 @@ export default function OrgAnalytics() {
               <CardTitle className="text-base">NPS Breakdown</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
                 <div className="p-4 bg-green-50 rounded-lg">
                   <p className="text-2xl font-bold text-green-700">{promoters}</p>
                   <p className="text-sm text-green-600">Promoters (9-10)</p>

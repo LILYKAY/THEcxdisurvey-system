@@ -1,36 +1,34 @@
-import puppeteer from "puppeteer-core";
+import { createRequire } from "module";
+const _require = createRequire(import.meta.url);
+// pdfkit is a CommonJS module; use createRequire to import it in ESM context
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const PDFDocument = _require("pdfkit") as any;
 
 /**
- * Generates a PDF buffer from an HTML string using system Chromium.
- * Returns a Buffer suitable for streaming as a PDF download.
+ * Generates a PDF buffer from survey report HTML using PDFKit (pure Node.js).
+ * No Chromium / puppeteer required — works in Cloud Run without any system binaries.
  */
 export async function generatePdfFromHtml(html: string): Promise<Buffer> {
-  const browser = await puppeteer.launch({
-    executablePath: "/usr/bin/chromium",
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
-      "--no-first-run",
-      "--no-zygote",
-      "--single-process",
-    ],
-    headless: true,
-  });
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    const doc = new PDFDocument({ margin: 50, size: "A4" });
 
-  try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "load" });
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: { top: "20mm", right: "15mm", bottom: "20mm", left: "15mm" },
-    });
-    return Buffer.from(pdfBuffer);
-  } finally {
-    await browser.close();
-  }
+    doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+
+    // Strip HTML tags and render as plain text
+    const text = html
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"').replace(/&#039;/g, "'")
+      .replace(/\s{2,}/g, " ").trim();
+
+    doc.fontSize(11).text(text, { lineGap: 4 });
+    doc.end();
+  });
 }
 
 /**

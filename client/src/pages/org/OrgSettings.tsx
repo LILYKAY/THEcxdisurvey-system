@@ -50,23 +50,23 @@ export default function OrgSettings() {
           <CardContent className="space-y-4">
             <div>
               <Label>Organisation Name</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} />
+              <Input value={name} onChange={(e) => setName(e.target.value)} className="h-11" />
             </div>
             <div>
               <Label>Description</Label>
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Industry</Label>
-                <Input value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="e.g. Financial Services" />
+                <Input value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="e.g. Financial Services" className="h-11" />
               </div>
               <div>
                 <Label>Country</Label>
-                <Input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="e.g. Nigeria" />
+                <Input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="e.g. Nigeria" className="h-11" />
               </div>
             </div>
-            <Button onClick={() => update.mutate({ id: orgIdNum, name, description: description || undefined, industry: industry || undefined, country: country || undefined })} disabled={!name || update.isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+            <Button onClick={() => update.mutate({ id: orgIdNum, name, description: description || undefined, industry: industry || undefined, country: country || undefined })} disabled={!name || update.isPending}             className="w-full bg-blue-600 hover:bg-blue-700 text-white h-11">
               {update.isPending ? "Saving..." : "Save Settings"}
             </Button>
           </CardContent>

@@ -27,11 +27,11 @@ export default function AdminSurveyInsights() {
   return (
     <DashboardLayout navItems={navItems} title="Survey Insights" appName="CXDi Admin">
       <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/admin/surveys")} className="text-gray-500"><ArrowLeft className="w-4 h-4 mr-1" />Back</Button>
-          <h1 className="text-xl font-bold text-gray-900">{survey?.title ?? "Survey Insights"}</h1>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/admin/surveys")} className="text-gray-500 shrink-0"><ArrowLeft className="w-4 h-4 mr-1" />Back</Button>
+          <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate min-w-0">{survey?.title ?? "Survey Insights"}</h1>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-3">
           <Card><CardContent className="p-4"><div className="flex items-center gap-2 mb-2"><Users className="w-4 h-4 text-blue-500" /><span className="text-xs text-gray-500">Total</span></div><p className="text-2xl font-bold">{total}</p></CardContent></Card>
           <Card><CardContent className="p-4"><div className="flex items-center gap-2 mb-2"><CheckCircle className="w-4 h-4 text-green-500" /><span className="text-xs text-gray-500">Completed</span></div><p className="text-2xl font-bold">{completed}</p></CardContent></Card>
           <Card><CardContent className="p-4"><div className="flex items-center gap-2 mb-2"><BarChart2 className="w-4 h-4 text-purple-500" /><span className="text-xs text-gray-500">Rate</span></div><p className="text-2xl font-bold">{rate}%</p></CardContent></Card>
@@ -42,7 +42,7 @@ export default function AdminSurveyInsights() {
             {!responses?.length ? <div className="text-center text-gray-500 py-6">No responses yet</div> : (
               <div className="space-y-2">
                 {responses.map((r: any) => (
-                  <div key={r.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-2">
                       <Badge variant={r.isComplete ? "default" : "outline"} className={r.isComplete ? "bg-green-100 text-green-700 border-green-200" : ""}>{r.isComplete ? "Complete" : "Partial"}</Badge>
                       {r.sentiment && <Badge variant="outline" className={`capitalize text-xs ${r.sentiment === "promoter" ? "text-green-600" : r.sentiment === "passive" ? "text-yellow-600" : "text-red-600"}`}>{r.sentiment}</Badge>}

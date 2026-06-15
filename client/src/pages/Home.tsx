@@ -139,7 +139,7 @@ export default function Home() {
       </header>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden pt-24 pb-20">
+      <section className="relative overflow-hidden pt-16 pb-14 sm:pt-24 sm:pb-20">
         {/* Background decoration */}
         <div
           className="pointer-events-none absolute inset-0 -z-10"
@@ -155,16 +155,16 @@ export default function Home() {
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               Built for Africa's growing business ecosystem
             </div>
-            <h1 className="mx-auto max-w-3xl text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl md:text-6xl">
+            <h1 className="mx-auto max-w-3xl text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl md:text-5xl lg:text-6xl">
               Collect customer insights with{" "}
               <span className="text-gradient">precision and trust</span>
             </h1>
-            <p className="mx-auto mt-6 max-w-xl text-base text-muted-foreground sm:text-lg">
+            <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground sm:text-base sm:mt-6">
               A professional survey platform for businesses, organizations, and individuals
               across Africa. Every response is preserved, every insight is real-time.
             </p>
-            <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Button size="lg" onClick={handleGetStarted} className="px-8 shadow-elegant">
+            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+              <Button size="lg" onClick={handleGetStarted} className="px-6 sm:px-8 shadow-elegant w-full sm:w-auto">
                 Start collecting insights
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
@@ -188,7 +188,7 @@ export default function Home() {
       </section>
 
       {/* ── Survey Forms ── */}
-      <section id="forms" className="py-20 bg-secondary/30">
+      <section id="forms" className="py-12 sm:py-20 bg-secondary/30">
         <div className="container">
           <div className="mb-12 text-center">
             <h2 className="text-3xl font-bold text-foreground">
@@ -218,7 +218,7 @@ export default function Home() {
       </section>
 
       {/* ── Features ── */}
-      <section id="features" className="py-20">
+      <section id="features" className="py-12 sm:py-20">
         <div className="container">
           <div className="mb-12 text-center">
             <h2 className="text-3xl font-bold text-foreground">
@@ -248,7 +248,7 @@ export default function Home() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="py-20 bg-primary">
+      <section className="py-12 sm:py-20 bg-primary">
         <div className="container text-center">
           <h2 className="font-serif text-3xl font-bold text-primary-foreground">
             Ready to start collecting insights?

@@ -32,7 +32,7 @@ export default function AdminDashboard() {
             Platform metrics are temporarily unavailable. The dashboard will retry automatically.
           </div>
         )}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2"><Building2 className="w-4 h-4 text-blue-500" /><span className="text-xs text-gray-500">Organisations</span></div>
