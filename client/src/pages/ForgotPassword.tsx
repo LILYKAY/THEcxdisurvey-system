@@ -10,9 +10,11 @@ import { toast } from "sonner";
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [emailFound, setEmailFound] = useState<boolean | null>(null);
 
   const forgotMutation = trpc.auth.forgotPassword.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setEmailFound(data.emailFound);
       setSubmitted(true);
     },
     onError: (err) => {
@@ -37,7 +39,7 @@ export default function ForgotPassword() {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-primary">
             <BarChart3 className="h-5 w-5 text-sidebar-primary-foreground" />
           </div>
-          <span className="font-serif text-2xl font-semibold">SurveyPro</span>
+          <span className="font-serif text-2xl font-semibold">The CXDi Surveys</span>
         </div>
 
         <div className="space-y-6">
@@ -67,33 +69,56 @@ export default function ForgotPassword() {
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
             <BarChart3 className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="font-serif text-xl font-semibold text-foreground">SurveyPro</span>
+          <span className="font-serif text-xl font-semibold text-foreground">The CXDi Surveys</span>
         </div>
 
         <div className="w-full max-w-sm">
           {submitted ? (
             <div className="text-center space-y-4">
               <div className="flex justify-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-                  <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+                <div className={`flex h-16 w-16 items-center justify-center rounded-full ${emailFound ? 'bg-emerald-100' : 'bg-red-100'}`}>
+                  {emailFound
+                    ? <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+                    : <span className="text-2xl font-bold text-red-500">!</span>
+                  }
                 </div>
               </div>
-              <h1 className="font-serif text-2xl font-semibold text-foreground">Check your inbox</h1>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                If an account with <strong className="text-foreground">{email}</strong> exists, we have sent a
-                password reset link. The link expires in 1 hour.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Didn't receive the email? Check your spam folder or{" "}
-                <button
-                  type="button"
-                  className="text-primary hover:underline underline-offset-4"
-                  onClick={() => setSubmitted(false)}
-                >
-                  try again
-                </button>
-                .
-              </p>
+              {emailFound ? (
+                <>
+                  <h1 className="font-serif text-2xl font-semibold text-foreground">Check your inbox</h1>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    A password reset link has been sent to{" "}
+                    <strong className="text-foreground">{email}</strong>. The link expires in 1 hour.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Didn't receive the email? Check your spam folder or{" "}
+                    <button
+                      type="button"
+                      className="text-primary hover:underline underline-offset-4"
+                      onClick={() => { setSubmitted(false); setEmailFound(null); }}
+                    >
+                      try again
+                    </button>
+                    .
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h1 className="font-serif text-2xl font-semibold text-foreground">No account found</h1>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    There is no account registered with{" "}
+                    <strong className="text-foreground">{email}</strong>. Please check the email address or{" "}
+                    <Link href="/signup" className="text-primary hover:underline underline-offset-4">create a new account</Link>.
+                  </p>
+                  <button
+                    type="button"
+                    className="text-sm text-primary hover:underline underline-offset-4"
+                    onClick={() => { setSubmitted(false); setEmailFound(null); }}
+                  >
+                    Try a different email
+                  </button>
+                </>
+              )}
               <Link
                 href="/login"
                 className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mt-4"

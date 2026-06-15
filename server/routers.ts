@@ -165,13 +165,13 @@ export const appRouter = router({
       .input(z.object({ email: z.string().email(), origin: z.string().url() }))
       .mutation(async ({ input }) => {
         const user = await getUserByEmail(input.email);
-        if (!user) return { success: true };
+        if (!user) return { success: true, emailFound: false };
         const token = nanoid(48);
         const expiresAt = new Date(Date.now() + 3600000);
         await createPasswordResetToken(user.id, token, expiresAt);
         const resetUrl = `${input.origin}/reset-password?token=${token}`;
         await sendPasswordResetEmail({ to: user.email!, name: user.name ?? "User", resetUrl });
-        return { success: true };
+        return { success: true, emailFound: true };
       }),
 
     resetPassword: publicProcedure
