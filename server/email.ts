@@ -166,8 +166,7 @@ export async function sendSurveyInvitationEmail(params: SendInvitationParams): P
           <tr>
             <td style="background:#f4f6f8;padding:20px 40px;border-top:1px solid #e5e7eb;">
               <p style="margin:0;color:#9ca3af;font-size:12px;line-height:1.6;">
-                This invitation was sent by <strong>${senderName}</strong> on behalf of <strong>${organizationName}</strong>.
-                If you did not expect this email, you may safely ignore it.
+                If you did not expect this message, you may safely ignore it.
               </p>
               <p style="margin:8px 0 0;color:#9ca3af;font-size:11px;">${b.footer}</p>
             </td>
