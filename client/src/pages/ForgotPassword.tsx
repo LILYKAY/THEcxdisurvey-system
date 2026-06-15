@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { BarChart3, ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ForgotPassword() {
@@ -35,11 +35,8 @@ export default function ForgotPassword() {
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
       {/* ── Left panel (branding) ── */}
       <div className="hidden md:flex md:w-1/2 lg:w-3/5 flex-col justify-between bg-sidebar text-sidebar-foreground p-10 lg:p-16">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-primary">
-            <BarChart3 className="h-5 w-5 text-sidebar-primary-foreground" />
-          </div>
-          <span className="font-serif text-2xl font-semibold">The CXDi Surveys</span>
+        <div className="flex items-center">
+          <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-10 w-auto rounded-lg" />
         </div>
 
         <div className="space-y-6">
@@ -65,11 +62,8 @@ export default function ForgotPassword() {
       {/* ── Right panel (form) ── */}
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 sm:px-10 md:px-12 lg:px-16">
         {/* Mobile logo */}
-        <div className="flex md:hidden items-center gap-3 mb-10">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-            <BarChart3 className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="font-serif text-xl font-semibold text-foreground">The CXDi Surveys</span>
+        <div className="flex md:hidden items-center mb-10">
+          <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-9 w-auto rounded-lg" />
         </div>
 
         <div className="w-full max-w-sm">

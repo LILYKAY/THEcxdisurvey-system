@@ -1,7 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
-  BarChart3,
   CheckCircle2,
   ChevronRight,
   Globe2,
@@ -20,7 +19,7 @@ const FEATURES = [
       "Every response is preserved forever. Updates create versioned history — no data is ever lost or overwritten without a record.",
   },
   {
-    icon: BarChart3,
+    icon: TrendingUp,
     title: "Real-Time Analytics",
     description:
       "Aggregated charts, response trends, and per-question breakdowns update instantly as new submissions arrive.",
@@ -103,11 +102,8 @@ export default function Home() {
       {/* ── Nav ── */}
       <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md">
         <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <BarChart3 className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="font-serif text-lg font-semibold text-foreground">TheCxdi Surveys</span>
+          <div className="flex items-center">
+            <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-8 w-auto" />
           </div>
           <nav className="hidden items-center gap-8 md:flex">
             <a href="#features" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
@@ -274,11 +270,8 @@ export default function Home() {
       {/* ── Footer ── */}
       <footer className="border-t border-border py-8">
         <div className="container flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-primary">
-              <BarChart3 className="h-3 w-3 text-primary-foreground" />
-            </div>
-            <span className="text-sm font-medium text-foreground">TheCxdi Surveys</span>
+          <div className="flex items-center">
+            <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-6 w-auto" />
           </div>
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} TheCxdi Surveys. Built for Africa's business ecosystem.

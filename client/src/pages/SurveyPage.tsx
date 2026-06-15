@@ -9,7 +9,6 @@ import {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
-  BarChart3,
   CheckCircle2,
   Loader2,
   Star,
@@ -581,11 +580,8 @@ export default function SurveyPage() {
       <div className="min-h-screen bg-background">
         <header className="border-b border-border bg-card/80 sticky top-0 z-10">
           <div className="container flex h-14 items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded bg-primary">
-                <BarChart3 className="h-3.5 w-3.5 text-primary-foreground" />
-              </div>
-              <span className="font-serif text-base font-semibold text-foreground">The CXDi Surveys</span>
+            <div className="flex items-center">
+              <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-8 w-auto" />
             </div>
           </div>
         </header>
@@ -619,11 +615,8 @@ export default function SurveyPage() {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-10">
         <div className="container flex h-14 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded bg-primary">
-              <BarChart3 className="h-3.5 w-3.5 text-primary-foreground" />
-            </div>
-            <span className="font-serif text-base font-semibold text-foreground">The CXDi Surveys</span>
+          <div className="flex items-center">
+            <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-8 w-auto" />
           </div>
           {data.survey && (
             <span className="hidden sm:block text-sm text-muted-foreground truncate max-w-[200px]">{data.survey.title}</span>

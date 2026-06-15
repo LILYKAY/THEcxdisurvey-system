@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import {
-  BarChart3,
   Building2,
   ChevronRight,
   ClipboardList,
@@ -48,11 +47,8 @@ function SidebarContent({
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-5 flex-shrink-0">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-          <BarChart3 className="h-4 w-4 text-sidebar-primary-foreground" />
-        </div>
-        <span className="font-serif text-lg font-semibold text-sidebar-foreground">The CXDi Surveys</span>
+      <div className="flex h-16 items-center border-b border-sidebar-border px-5 flex-shrink-0">
+        <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-8 w-auto" />
       </div>
 
       {/* Nav */}
@@ -190,11 +186,8 @@ export function DashboardShell({ children, navItems, title }: DashboardShellProp
 
           {/* Mobile logo (when no title) */}
           {!title && (
-            <div className="flex md:hidden items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-                <BarChart3 className="h-3.5 w-3.5 text-primary-foreground" />
-              </div>
-              <span className="font-serif text-base font-semibold text-foreground">The CXDi Surveys</span>
+            <div className="flex md:hidden items-center">
+              <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-7 w-auto" />
             </div>
           )}
         </header>
