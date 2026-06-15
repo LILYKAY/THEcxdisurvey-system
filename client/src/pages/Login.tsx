@@ -21,6 +21,8 @@ export default function Login() {
       const user = await utils.auth.me.fetch();
       if (user?.role === "admin") {
         navigate("/admin");
+      } else if (user?.role === "org_manager" && (user as any).managedOrgId) {
+        navigate(`/org/${(user as any).managedOrgId}`);
       } else {
         // org_owner and regular users both go to org-select
         // (org-select will auto-redirect to the org if only one exists)

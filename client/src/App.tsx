@@ -40,6 +40,8 @@ import OrgSendSurvey from "./pages/org/OrgSendSurvey";
 import OrgEmailBranding from "./pages/org/OrgEmailBranding";
 import OrgAnalytics from "./pages/org/OrgAnalytics";
 import OrgSurveyInvitations from "./pages/org/OrgSurveyInvitations";
+import OrgManagers from "./pages/org/OrgManagers";
+import AcceptInvite from "./pages/AcceptInvite";
 
 function Router() {
   return (
@@ -79,6 +81,10 @@ function Router() {
       <Route path="/org/:orgId/respondents/:respondentId" component={OrgRespondentDetail} />
       <Route path="/org/:orgId/branding" component={OrgEmailBranding} />
       <Route path="/org/:orgId/settings" component={OrgSettings} />
+      <Route path="/org/:orgId/managers" component={OrgManagers} />
+
+      {/* Invite acceptance */}
+      <Route path="/invite/:token" component={AcceptInvite} />
 
       <Route component={NotFound} />
     </Switch>

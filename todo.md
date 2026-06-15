@@ -259,3 +259,18 @@
 - [x] Gate /admin/* routes so only platform admins can access them
 - [x] Hide admin sidebar nav items (Organisations, Users) from non-admin users
 - [x] Redirect non-admin users away from /admin/* to their org dashboard
+
+## Phase 24: Org Manager Invite System
+
+- [x] Add org_manager_invites table (id, orgId, email, name, token, expiresAt, acceptedAt, invitedById)
+- [x] Add orgManagerId column to users table (nullable FK to organizations)
+- [x] Apply schema migration
+- [x] Server: admin/org-owner procedure to invite manager by email (creates token, sends invite email)
+- [x] Server: public procedure to validate invite token (returns org name + email)
+- [x] Server: public procedure to accept invite (set name + password, create user with role=org_manager, link to org)
+- [x] Server: org-scoped procedures for org_manager role (read-only access to their org only)
+- [x] Server: list/revoke org managers per org (admin)
+- [x] Frontend: Admin org detail page — "Invite Manager" button + managers list with revoke
+- [x] Frontend: /invite/:token page — accept invite form (name + password)
+- [x] Frontend: Login page supports org_manager role and redirects to their org dashboard
+- [x] Frontend: Org manager dashboard (scoped to their org, no create/delete org)

@@ -86,6 +86,13 @@ import {
   upsertUser,
   verifyMfaOtp,
   countUsers,
+  createOrgManagerInvite,
+  getOrgManagerInviteByToken,
+  acceptOrgManagerInvite,
+  getOrgManagerInvitesByOrg,
+  getOrgManagersByOrg,
+  createOrgManager,
+  revokeOrgManager,
 } from "./db";
 import { sendSurveyInvitationEmail, sendReportEmail, sendPasswordResetEmail } from "./email";
 import { generatePdfFromHtml, buildSurveyReportHtml } from "./pdf";
@@ -224,12 +231,17 @@ export const appRouter = router({
   org: router({
     list: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role === "admin") return getAllOrganizations();
+      if (ctx.user.role === "org_manager" && ctx.user.managedOrgId) {
+        const org = await getOrganizationById(ctx.user.managedOrgId);
+        return org ? [org] : [];
+      }
       return getOrganizationsByOwner(ctx.user.id);
     }),
     get: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ input, ctx }) => {
       const org = await getOrganizationById(input.id);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgManager = ctx.user.role === "org_manager" && ctx.user.managedOrgId === input.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgManager) throw new TRPCError({ code: "FORBIDDEN" });
       return org;
     }),
     create: protectedProcedure
@@ -252,37 +264,43 @@ export const appRouter = router({
     overviewMetrics: protectedProcedure.input(z.object({ organizationId: z.number() })).query(async ({ input, ctx }) => {
       const org = await getOrganizationById(input.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgManager = ctx.user.role === "org_manager" && ctx.user.managedOrgId === input.organizationId;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgManager) throw new TRPCError({ code: "FORBIDDEN" });
       return getOrgOverviewMetrics(input.organizationId);
     }),
     responseTrend: protectedProcedure.input(z.object({ organizationId: z.number(), days: z.number().optional() })).query(async ({ input, ctx }) => {
       const org = await getOrganizationById(input.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgManager = ctx.user.role === "org_manager" && ctx.user.managedOrgId === input.organizationId;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgManager) throw new TRPCError({ code: "FORBIDDEN" });
       return getOrgResponseTrend(input.organizationId, input.days);
     }),
     npsSummary: protectedProcedure.input(z.object({ organizationId: z.number() })).query(async ({ input, ctx }) => {
       const org = await getOrganizationById(input.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgManager = ctx.user.role === "org_manager" && ctx.user.managedOrgId === input.organizationId;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgManager) throw new TRPCError({ code: "FORBIDDEN" });
       return getOrgNpsSummary(input.organizationId);
     }),
     responseFeed: protectedProcedure.input(z.object({ organizationId: z.number(), limit: z.number().optional() })).query(async ({ input, ctx }) => {
       const org = await getOrganizationById(input.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgManager = ctx.user.role === "org_manager" && ctx.user.managedOrgId === input.organizationId;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgManager) throw new TRPCError({ code: "FORBIDDEN" });
       return getOrgResponseFeed(input.organizationId, input.limit);
     }),
     invitations: protectedProcedure.input(z.object({ organizationId: z.number() })).query(async ({ input, ctx }) => {
       const org = await getOrganizationById(input.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgManager = ctx.user.role === "org_manager" && ctx.user.managedOrgId === input.organizationId;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgManager) throw new TRPCError({ code: "FORBIDDEN" });
       return getInvitationsByOrg(input.organizationId);
     }),
     surveyInvitations: protectedProcedure.input(z.object({ organizationId: z.number(), surveyId: z.number() })).query(async ({ input, ctx }) => {
       const org = await getOrganizationById(input.organizationId);
       if (!org) throw new TRPCError({ code: "NOT_FOUND" });
-      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+      const isOrgManager = ctx.user.role === "org_manager" && ctx.user.managedOrgId === input.organizationId;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgManager) throw new TRPCError({ code: "FORBIDDEN" });
       return getInvitationsBySurvey(input.organizationId, input.surveyId);
     }),
   }),
@@ -696,6 +714,97 @@ export const appRouter = router({
     getAnswers: protectedProcedure.input(z.object({ responseId: z.number() })).query(async ({ input }) => {
       return getAnswersByResponse(input.responseId);
     }),
+  }),
+
+  orgManager: router({
+    // Send invite to a new manager for an org
+    invite: protectedProcedure
+      .input(z.object({ organizationId: z.number(), email: z.string().email(), name: z.string().optional(), origin: z.string().url() }))
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const token = nanoid(48);
+        const expiresAt = new Date(Date.now() + 7 * 24 * 3600000); // 7 days
+        await createOrgManagerInvite({ organizationId: input.organizationId, email: input.email, name: input.name, token, invitedById: ctx.user.id, expiresAt });
+        const inviteUrl = `${ENV.canonicalUrl || input.origin}/invite/${token}`;
+        // Send invite email
+        const resend = await import("resend").then(m => new m.Resend(process.env.RESEND_API_KEY!));
+        await resend.emails.send({
+          from: "CXDi SurveyPro <noreply@thecxdi.com>",
+          to: input.email,
+          subject: `You've been invited to manage ${org.name} on CXDi SurveyPro`,
+          html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:40px 20px;">
+            <h2 style="color:#03989e;">You've been invited to manage ${org.name}</h2>
+            <p>Hi${input.name ? " " + input.name : ""},</p>
+            <p>You have been invited to manage the <strong>${org.name}</strong> organization on CXDi SurveyPro. Click the button below to set up your account.</p>
+            <a href="${inviteUrl}" style="display:inline-block;background:#03989e;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:20px 0;">Accept Invitation &rarr;</a>
+            <p style="color:#6b7280;font-size:12px;">This invitation expires in 7 days. If you did not expect this message, you may safely ignore it.</p>
+            <p style="color:#9ca3af;font-size:11px;">Powered by CXDi SurveyPro</p>
+          </div>`,
+          text: `You've been invited to manage ${org.name} on CXDi SurveyPro.\n\nAccept your invitation: ${inviteUrl}\n\nThis link expires in 7 days.`,
+        });
+        return { success: true };
+      }),
+
+    // Validate an invite token (public — used on the accept page)
+    validateInvite: publicProcedure
+      .input(z.object({ token: z.string() }))
+      .query(async ({ input }) => {
+        const invite = await getOrgManagerInviteByToken(input.token);
+        if (!invite) throw new TRPCError({ code: "NOT_FOUND", message: "Invite not found" });
+        if (invite.acceptedAt) throw new TRPCError({ code: "BAD_REQUEST", message: "Invite already accepted" });
+        if (invite.expiresAt < new Date()) throw new TRPCError({ code: "BAD_REQUEST", message: "Invite has expired" });
+        const org = await getOrganizationById(invite.organizationId);
+        return { email: invite.email, name: invite.name, orgName: org?.name ?? "" };
+      }),
+
+    // Accept invite: set name + password, create manager account
+    acceptInvite: publicProcedure
+      .input(z.object({ token: z.string(), name: z.string().min(1), password: z.string().min(8) }))
+      .mutation(async ({ input, ctx }) => {
+        const invite = await getOrgManagerInviteByToken(input.token);
+        if (!invite) throw new TRPCError({ code: "NOT_FOUND", message: "Invite not found" });
+        if (invite.acceptedAt) throw new TRPCError({ code: "BAD_REQUEST", message: "Invite already accepted" });
+        if (invite.expiresAt < new Date()) throw new TRPCError({ code: "BAD_REQUEST", message: "Invite has expired" });
+        // Check if user with this email already exists
+        const existing = await getUserByEmail(invite.email);
+        if (existing) throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists. Please log in." });
+        const passwordHash = await hashPassword(input.password);
+        const user = await createOrgManager({ email: invite.email, name: input.name, passwordHash, managedOrgId: invite.organizationId });
+        if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await acceptOrgManagerInvite(input.token);
+        // Log them in immediately
+        const token = await sdk.createSessionToken(user.openId, { name: user.name ?? "" });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS / 1000 });
+        return { user, orgId: invite.organizationId };
+      }),
+
+    // List managers for an org
+    listManagers: protectedProcedure
+      .input(z.object({ organizationId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const [managers, invites] = await Promise.all([
+          getOrgManagersByOrg(input.organizationId),
+          getOrgManagerInvitesByOrg(input.organizationId),
+        ]);
+        return { managers, invites };
+      }),
+
+    // Revoke a manager's access
+    revokeManager: protectedProcedure
+      .input(z.object({ userId: z.number(), organizationId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const org = await getOrganizationById(input.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        await revokeOrgManager(input.userId);
+        return { success: true };
+      }),
   }),
 
   admin: router({

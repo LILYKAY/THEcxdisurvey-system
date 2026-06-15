@@ -35,6 +35,14 @@ export default function OrgSelect() {
     onError: (e) => toast.error(e.message),
   });
 
+  // Auto-redirect org_managers directly to their assigned org
+  useEffect(() => {
+    if (!user) return;
+    if (user.role === "org_manager" && (user as any).managedOrgId) {
+      navigate(`/org/${(user as any).managedOrgId}`);
+    }
+  }, [user, navigate]);
+
   // Auto-redirect if user has exactly one org
   useEffect(() => {
     if (!orgs) return;

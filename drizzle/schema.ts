@@ -16,7 +16,8 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin", "org_owner"]).default("user").notNull(),
+  role: mysqlEnum("role", ["user", "admin", "org_owner", "org_manager"]).default("user").notNull(),
+  managedOrgId: int("managedOrgId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -284,3 +285,18 @@ export const passwordResetTokens = mysqlTable("password_reset_tokens", {
 });
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+
+// ─── Org Manager Invites ──────────────────────────────────────────────────────
+export const orgManagerInvites = mysqlTable("org_manager_invites", {
+  id: int("id").autoincrement().primaryKey(),
+  organizationId: int("organizationId").notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  name: varchar("name", { length: 255 }),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  invitedById: int("invitedById").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  acceptedAt: timestamp("acceptedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type OrgManagerInvite = typeof orgManagerInvites.$inferSelect;
+export type InsertOrgManagerInvite = typeof orgManagerInvites.$inferInsert;

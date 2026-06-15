@@ -18,6 +18,8 @@ import {
   Organization,
   PasswordResetToken,
   SurveyInvitation,
+  OrgManagerInvite,
+  orgManagerInvites,
   audienceContacts,
   audiences,
   contacts,
@@ -133,7 +135,7 @@ export async function countUsers(): Promise<number> {
   return result[0]?.count ?? 0;
 }
 
-export async function updateUserRole(userId: number, role: "user" | "admin" | "org_owner") {
+export async function updateUserRole(userId: number, role: "user" | "admin" | "org_owner" | "org_manager") {
   const db = await getDb();
   if (!db) return;
   await db.update(users).set({ role }).where(eq(users.id, userId));
@@ -972,4 +974,84 @@ export async function getAdminStats() {
     totalSurveys: surveyRow?.count ?? 0,
     totalResponses: responseRow?.count ?? 0,
   };
+}
+
+// ─── Org Manager Invites ──────────────────────────────────────────────────────
+
+export async function createOrgManagerInvite(data: {
+  organizationId: number;
+  email: string;
+  name?: string;
+  token: string;
+  invitedById: number;
+  expiresAt: Date;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(orgManagerInvites).values(data);
+  const [row] = await db.select().from(orgManagerInvites).where(eq(orgManagerInvites.token, data.token)).limit(1);
+  return row ?? null;
+}
+
+export async function getOrgManagerInviteByToken(token: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(orgManagerInvites).where(eq(orgManagerInvites.token, token)).limit(1);
+  return row ?? null;
+}
+
+export async function acceptOrgManagerInvite(token: string) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.update(orgManagerInvites).set({ acceptedAt: new Date() }).where(eq(orgManagerInvites.token, token));
+  return true;
+}
+
+export async function getOrgManagerInvitesByOrg(organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(orgManagerInvites)
+    .where(eq(orgManagerInvites.organizationId, organizationId))
+    .orderBy(desc(orgManagerInvites.createdAt));
+}
+
+export async function getOrgManagersByOrg(organizationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(users)
+    .where(and(eq(users.role, "org_manager"), eq(users.managedOrgId, organizationId)));
+}
+
+export async function createOrgManager(data: {
+  email: string;
+  name: string;
+  passwordHash: string;
+  managedOrgId: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const openId = `mgr_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+  await db.insert(users).values({
+    openId,
+    email: data.email,
+    name: data.name,
+    passwordHash: data.passwordHash,
+    role: "org_manager",
+    managedOrgId: data.managedOrgId,
+    loginMethod: "password",
+    lastSignedIn: new Date(),
+  });
+  const [user] = await db.select().from(users).where(eq(users.email, data.email)).limit(1);
+  return user ?? null;
+}
+
+export async function revokeOrgManager(userId: number) {
+  const db = await getDb();
+  if (!db) return false;
+  await db.update(users).set({ role: "user", managedOrgId: null }).where(eq(users.id, userId));
+  return true;
 }

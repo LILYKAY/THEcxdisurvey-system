@@ -5,11 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BarChart2, Users, Send, TrendingUp, Plus, Settings, Mail, FileText } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 export default function OrgDashboard() {
   const { orgId } = useParams<{ orgId: string }>();
   const orgIdNum = parseInt(orgId ?? "0");
   const [, navigate] = useLocation();
+  const { user } = useAuth();
+  const isManager = user?.role === "org_manager";
 
   const { data: org } = trpc.org.get.useQuery({ id: orgIdNum });
   const { data: metrics } = trpc.org.overviewMetrics.useQuery({ organizationId: orgIdNum });
@@ -22,8 +25,12 @@ export default function OrgDashboard() {
     { label: "Contacts", href: `/org/${orgId}/contacts` },
     { label: "Audiences", href: `/org/${orgId}/audiences` },
     { label: "Respondents", href: `/org/${orgId}/respondents` },
-    { label: "Email Branding", href: `/org/${orgId}/branding` },
-    { label: "Settings", href: `/org/${orgId}/settings` },
+    // Managers and Settings are hidden from org_manager role
+    ...(!isManager ? [
+      { label: "Email Branding", href: `/org/${orgId}/branding` },
+      { label: "Managers", href: `/org/${orgId}/managers` },
+      { label: "Settings", href: `/org/${orgId}/settings` },
+    ] : []),
   ];
 
   return (
