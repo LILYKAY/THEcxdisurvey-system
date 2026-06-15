@@ -140,7 +140,7 @@ export const appRouter = router({
       }),
 
     login: publicProcedure
-      .input(z.object({ email: z.string().email(), password: z.string() }))
+      .input(z.object({ email: z.string().email(), password: z.string(), rememberMe: z.boolean().optional().default(true) }))
       .mutation(async ({ input, ctx }) => {
         const user = await getUserByEmail(input.email);
         if (!user || !user.passwordHash) throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
@@ -149,7 +149,9 @@ export const appRouter = router({
         await upsertUser({ openId: user.openId, lastSignedIn: new Date() });
         const token = await sdk.createSessionToken(user.openId, { name: user.name ?? "" });
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS / 1000 });
+        // rememberMe = true → 1 year; false → session cookie (expires when browser closes)
+        const maxAge = input.rememberMe ? ONE_YEAR_MS / 1000 : undefined;
+        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, ...(maxAge ? { maxAge } : {}) });
         return { user };
       }),
 
