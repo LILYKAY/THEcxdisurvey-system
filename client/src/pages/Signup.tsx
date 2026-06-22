@@ -54,7 +54,7 @@ export default function Signup() {
       {/* ── Left panel (branding) ── */}
       <div className="hidden md:flex md:w-1/2 lg:w-3/5 flex-col justify-between bg-sidebar text-sidebar-foreground p-10 lg:p-16">
         <div className="flex items-center">
-          <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-10 w-auto rounded-lg" />
+          <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-16 w-auto rounded-lg" />
         </div>
 
         <div className="space-y-6">

@@ -579,9 +579,9 @@ export default function SurveyPage() {
     return (
       <div className="min-h-screen bg-background">
         <header className="border-b border-border bg-card/80 sticky top-0 z-10">
-          <div className="container flex h-14 items-center justify-between">
+          <div className="container flex h-16 items-center justify-between">
             <a href="/" className="flex items-center">
-              <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-8 w-auto" />
+              <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-12 w-auto" />
             </a>
           </div>
         </header>
@@ -614,9 +614,9 @@ export default function SurveyPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-10">
-        <div className="container flex h-14 items-center justify-between">
+        <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center">
-            <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-8 w-auto" />
+            <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-12 w-auto" />
           </div>
           {data.survey && (
             <span className="hidden sm:block text-sm text-muted-foreground truncate max-w-[200px]">{data.survey.title}</span>

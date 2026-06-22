@@ -161,8 +161,17 @@ function DashboardLayoutContent({
     <>
       <div className="relative" ref={sidebarRef}>
         <Sidebar collapsible="icon" className="border-r-0" disableTransition={isResizing}>
-          <SidebarHeader className="h-16 justify-center">
-            <div className="flex items-center gap-3 px-2 transition-all w-full">
+          <SidebarHeader className="h-auto py-4 justify-center">
+            <div className="flex flex-col items-center gap-3 px-2 transition-all w-full">
+              {!isCollapsed && (
+                <Link href="/" className="flex items-center cursor-pointer min-w-0">
+                  <img
+                    src="/manus-storage/cxdi-logo-transparent_f890673f.png"
+                    alt="The CXDi Surveys"
+                    className="h-16 w-auto"
+                  />
+                </Link>
+              )}
               <button
                 onClick={toggleSidebar}
                 className="h-9 w-9 flex items-center justify-center hover:bg-accent rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
@@ -170,15 +179,6 @@ function DashboardLayoutContent({
               >
                 <PanelLeft className="h-4 w-4 text-muted-foreground" />
               </button>
-              {!isCollapsed && (
-                <Link href="/" className="flex items-center cursor-pointer min-w-0">
-                  <img
-                    src="/manus-storage/cxdi-logo-transparent_f890673f.png"
-                    alt="The CXDi Surveys"
-                    className="h-7 w-auto"
-                  />
-                </Link>
-              )}
             </div>
           </SidebarHeader>
 
