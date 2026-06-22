@@ -613,9 +613,9 @@ export default function SurveyPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-10">
+      <header className="border-b border-border sticky top-0 z-10">
         <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center">
+          <div className="flex items-center bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-4 py-2 rounded-lg">
             <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-12 w-auto" />
           </div>
           {data.survey && (
