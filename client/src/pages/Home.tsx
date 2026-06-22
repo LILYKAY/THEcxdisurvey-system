@@ -10,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { useEffect, useState } from "react";
 
 const FEATURES = [
   {
@@ -84,6 +85,16 @@ const FORMS = [
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleGetStarted = () => {
     if (!isAuthenticated) {
@@ -140,6 +151,27 @@ export default function Home() {
 
       {/* ── Hero ── */}
       <section className="relative overflow-hidden pt-16 pb-14 sm:pt-24 sm:pb-20">
+        {/* Parallax video background */}
+        <div
+          className="pointer-events-none absolute inset-0 -z-20 overflow-hidden"
+          aria-hidden="true"
+        >
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="absolute inset-0 h-full w-full object-cover"
+            style={{
+              transform: `translateY(${scrollY * 0.5}px)`,
+            }}
+          >
+            <source src="/manus-storage/hf_20260622_213227_6c3fa20f-a7a5-45fd-987f-80507c6e69d1_40631353.mp4" type="video/mp4" />
+          </video>
+          {/* Overlay to ensure text readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background/80" />
+        </div>
+
         {/* Background decoration */}
         <div
           className="pointer-events-none absolute inset-0 -z-10"

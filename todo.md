@@ -313,3 +313,14 @@
 - [x] Clear sent survey data: remove all invitations and responses from database — via SQL
 - [x] Add admin database deletion procedures: delete orgs, surveys, users, invitations via tRPC (placeholder procedures added)
 - [x] Run TypeScript check, tests, save checkpoint, and report
+
+
+## Phase 29: Parallax Video Background on Home Page
+
+- [x] Upload video to webdev storage (/manus-storage/hf_20260622_213227_6c3fa20f-a7a5-45fd-987f-80507c6e69d1_40631353.mp4)
+- [x] Add scroll event listener to Home.tsx component
+- [x] Implement parallax effect using translateY(scrollY * 0.5) on video element
+- [x] Add gradient overlay to ensure text readability over video
+- [x] Set video to autoplay, muted, loop, playsInline
+- [x] TypeScript check: clean
+- [x] Tests: 15/15 passing
