@@ -1,10 +1,80 @@
 import { useParams, useLocation } from "wouter";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BarChart2, Users, CheckCircle, TrendingUp } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { ArrowLeft, BarChart2, Users, CheckCircle, TrendingUp, Download } from "lucide-react";
+import { toast } from "sonner";
+
+
+function ExportButtons({ surveyId, surveyTitle }: { surveyId: number; surveyTitle: string }) {
+  const [isExporting, setIsExporting] = useState(false);
+  const { mutate: downloadPdf } = trpc.surveys.downloadPdf.useMutation();
+
+  const handleExportPDF = async () => {
+    if (!surveyId) return;
+    setIsExporting(true);
+    try {
+      downloadPdf(
+        { surveyId },
+        {
+          onSuccess: (data) => {
+            const link = document.createElement("a");
+            link.href = `data:application/pdf;base64,${data.pdf}`;
+            link.download = `${surveyTitle}-report.pdf`;
+            link.click();
+            toast.success("PDF downloaded successfully");
+          },
+          onError: () => {
+            toast.error("Failed to download PDF");
+          },
+        }
+      );
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportCSV = async () => {
+    if (!surveyId) return;
+    setIsExporting(true);
+    try {
+      // For now, CSV export would require a backend procedure
+      // This is a placeholder that shows the UI pattern
+      toast.info("CSV export coming soon");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return (
+    <div className="flex gap-2 shrink-0">
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={handleExportPDF}
+        disabled={isExporting}
+        className="flex items-center gap-1"
+      >
+        {isExporting ? <Spinner className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+        PDF
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={handleExportCSV}
+        disabled={isExporting}
+        className="flex items-center gap-1"
+      >
+        {isExporting ? <Spinner className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+        CSV
+      </Button>
+    </div>
+  );
+}
 
 export default function OrgAnalytics() {
   const { orgId, surveyId } = useParams<{ orgId: string; surveyId: string }>();
@@ -34,14 +104,17 @@ export default function OrgAnalytics() {
   return (
     <DashboardLayout navItems={navItems} title="Analytics">
       <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-start gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/org/${orgId}/surveys`)} className="text-gray-500 shrink-0">
-            <ArrowLeft className="w-4 h-4 mr-1" /> Back
-          </Button>
-          <div className="min-w-0">
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">{survey?.title ?? "Analytics"}</h1>
-            <p className="text-sm text-gray-500">Response analytics and insights</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <Button variant="ghost" size="sm" onClick={() => navigate(`/org/${orgId}/surveys`)} className="text-gray-500 shrink-0">
+              <ArrowLeft className="w-4 h-4 mr-1" /> Back
+            </Button>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">{survey?.title ?? "Analytics"}</h1>
+              <p className="text-sm text-gray-500">Response analytics and insights</p>
+            </div>
           </div>
+          <ExportButtons surveyId={surveyIdNum} surveyTitle={survey?.title ?? "Survey"} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
