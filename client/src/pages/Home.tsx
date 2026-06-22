@@ -150,10 +150,10 @@ export default function Home() {
       </header>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden pt-16 pb-14 sm:pt-24 sm:pb-20">
+      <section className="relative pt-16 pb-14 sm:pt-24 sm:pb-20">
         {/* Parallax video background */}
         <div
-          className="pointer-events-none absolute inset-0 -z-20 overflow-hidden"
+          className="pointer-events-none fixed inset-0 -z-20"
           aria-hidden="true"
         >
           <video
