@@ -150,10 +150,10 @@ export default function Home() {
       </header>
 
       {/* ── Hero ── */}
-      <section className="relative pt-16 pb-14 sm:pt-24 sm:pb-20">
+      <section className="relative overflow-hidden pt-16 pb-14 sm:pt-24 sm:pb-20 bg-background">
         {/* Parallax video background */}
         <div
-          className="pointer-events-none fixed inset-0 -z-20"
+          className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
           aria-hidden="true"
         >
           <video
@@ -181,7 +181,7 @@ export default function Home() {
           <div className="absolute top-20 right-0 h-[400px] w-[400px] rounded-full bg-accent/10 blur-3xl" />
         </div>
 
-        <div className="container text-center">
+        <div className="container text-center relative z-10">
           <div className="animate-fade-in">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground shadow-sm">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
