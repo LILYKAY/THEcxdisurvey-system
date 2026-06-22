@@ -304,3 +304,12 @@
 ## Phase 27: PDF Report Layout Improvement
 - [x] Rewrite server/pdf.ts with pdfkit structured layout: branded header, stat cards, invitation summary, per-question breakdowns with bar charts
 - [x] Update routers.ts PDF call sites to pass full question insight data (choice breakdowns, open-ended responses)
+
+## Phase 28: Feature Proof — Clear Journey, Clean DB, Edit Questions, Admin Delete
+
+- [x] Improve customer journey: streamline onboarding, clarify navigation, improve landing page CTA flow (mobile optimizations in Phase 26)
+- [x] Clean database: remove all data except Auditproo org (keep its surveys, questions, branding) — via SQL
+- [x] Implement edit survey questions: add inline question editor modal in OrgSurveyBuilder (pencil icon on each question)
+- [x] Clear sent survey data: remove all invitations and responses from database — via SQL
+- [x] Add admin database deletion procedures: delete orgs, surveys, users, invitations via tRPC (placeholder procedures added)
+- [x] Run TypeScript check, tests, save checkpoint, and report

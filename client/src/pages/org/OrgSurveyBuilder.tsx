@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
-import { Plus, Trash2, GripVertical, ArrowLeft, Send, CalendarIcon, X } from "lucide-react";
+import { Plus, Trash2, GripVertical, ArrowLeft, Send, CalendarIcon, X, Edit2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const QUESTION_TYPES = [
@@ -53,6 +53,12 @@ export default function OrgSurveyBuilder() {
   const [headlineDraft, setHeadlineDraft] = useState("");
   const [editingClosing, setEditingClosing] = useState(false);
   const [closingDraft, setClosingDraft] = useState("");
+
+  // Edit question state
+  const [editingQuestionId, setEditingQuestionId] = useState<number | null>(null);
+  const [editQText, setEditQText] = useState("");
+  const [editQRequired, setEditQRequired] = useState(true);
+  const [editQOptions, setEditQOptions] = useState<string[]>([]);
 
   const needsOptions = ["multiple_choice_single", "multiple_choice_multi"].includes(qType);
 
@@ -107,6 +113,35 @@ export default function OrgSurveyBuilder() {
     onSuccess: () => { utils.questions.list.invalidate({ surveyId: surveyIdNum }); toast.success("Question deleted"); },
     onError: (e) => toast.error(e.message),
   });
+
+  const updateQ = trpc.questions.update.useMutation({
+    onSuccess: () => {
+      utils.questions.list.invalidate({ surveyId: surveyIdNum });
+      setEditingQuestionId(null);
+      toast.success("Question updated");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleEditQuestion = (q: any) => {
+    setEditingQuestionId(q.id);
+    setEditQText(q.questionText);
+    setEditQRequired(q.isRequired);
+    setEditQOptions(q.options?.map((o: any) => o.label) ?? []);
+  };
+
+  const handleSaveEditQuestion = () => {
+    if (!editQText.trim()) { toast.error("Question text is required"); return; }
+    const q = questions?.find(q => q.id === editingQuestionId);
+    const needsOpts = q && ["multiple_choice_single","multiple_choice_multi"].includes(q.questionType);
+    if (needsOpts && editQOptions.filter(o => o.trim()).length < 2) {
+      toast.error("Please add at least 2 options"); return;
+    }
+    const options = needsOpts
+      ? editQOptions.filter(o => o.trim()).map((o, i) => ({ value: `opt_${i + 1}`, label: o.trim() }))
+      : undefined;
+    updateQ.mutate({ id: editingQuestionId!, questionText: editQText, isRequired: editQRequired, options, organizationId: orgIdNum });
+  };
 
   const handleAddQuestion = () => {
     if (!qText.trim()) { toast.error("Question text is required"); return; }
@@ -169,9 +204,14 @@ export default function OrgSurveyBuilder() {
                       </div>
                       <p className="text-sm font-medium text-gray-900">{q.questionText}</p>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => deleteQ.mutate({ id: q.id, organizationId: orgIdNum })} className="text-red-400 hover:text-red-600 hover:bg-red-50 shrink-0">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex gap-1 shrink-0">
+                      <Button variant="ghost" size="sm" onClick={() => handleEditQuestion(q)} className="text-blue-400 hover:text-blue-600 hover:bg-blue-50">
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => deleteQ.mutate({ id: q.id, organizationId: orgIdNum })} className="text-red-400 hover:text-red-600 hover:bg-red-50">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -448,6 +488,50 @@ export default function OrgSurveyBuilder() {
               </div>
               <Button onClick={handleAddQuestion} disabled={!qText || createQ.isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                 {createQ.isPending ? "Adding..." : "Add Question"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Question Modal */}
+        <Dialog open={editingQuestionId !== null} onOpenChange={(open) => { if (!open) setEditingQuestionId(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Question</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div>
+                <Label>Question Text</Label>
+                <Textarea value={editQText} onChange={(e) => setEditQText(e.target.value)} placeholder="Enter your question..." rows={3} />
+              </div>
+              {questions?.find(q => q.id === editingQuestionId) && ["multiple_choice_single","multiple_choice_multi"].includes(questions.find(q => q.id === editingQuestionId)?.questionType ?? "") && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Answer Options</Label>
+                    <Button type="button" variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 text-xs gap-1 h-auto py-1" onClick={() => setEditQOptions([...editQOptions, ""])}>
+                      <Plus className="w-3 h-3" /> Add option
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {editQOptions.map((opt, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <Input value={opt} onChange={(e) => { const updated = [...editQOptions]; updated[idx] = e.target.value; setEditQOptions(updated); }} placeholder={`Option ${idx + 1}`} className="flex-1" />
+                        {editQOptions.length > 2 && (
+                          <Button type="button" variant="ghost" size="sm" className="text-red-400 hover:text-red-600 hover:bg-red-50 h-9 w-9 p-0 shrink-0" onClick={() => setEditQOptions(editQOptions.filter((_, i) => i !== idx))}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="edit-required" checked={editQRequired} onChange={(e) => setEditQRequired(e.target.checked)} className="rounded" />
+                <Label htmlFor="edit-required">Required</Label>
+              </div>
+              <Button onClick={handleSaveEditQuestion} disabled={!editQText || updateQ.isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                {updateQ.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </DialogContent>

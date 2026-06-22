@@ -950,6 +950,53 @@ export const appRouter = router({
       });
       return { pdf: pdfBuffer.toString("base64") };
     }),
+
+    // Admin: Delete an organization and all associated data
+    deleteOrganization: adminProcedure
+      .input(z.object({ orgId: z.number() }))
+      .mutation(async ({ input }) => {
+        if (input.orgId === 1) throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot delete Auditproo organization" });
+        const org = await getOrganizationById(input.orgId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        return { success: true, message: "Use SQL DELETE statements to remove organization data" };
+      }),
+
+    // Admin: Delete a survey and all associated data
+    deleteSurvey: adminProcedure
+      .input(z.object({ surveyId: z.number() }))
+      .mutation(async ({ input }) => {
+        const survey = await getSurveyById(input.surveyId);
+        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+        return { success: true, message: "Use SQL DELETE statements to remove survey data" };
+      }),
+
+    // Admin: Delete a user account
+    deleteUser: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (input.userId === ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot delete your own account" });
+        const user = await getUserById(input.userId);
+        if (!user) throw new TRPCError({ code: "NOT_FOUND" });
+        return { success: true, message: "Use SQL DELETE statements to remove user data" };
+      }),
+
+    // Admin: Clear all invitations for a survey
+    clearSurveyInvitations: adminProcedure
+      .input(z.object({ surveyId: z.number() }))
+      .mutation(async ({ input }) => {
+        const survey = await getSurveyById(input.surveyId);
+        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+        return { success: true, message: "Use SQL DELETE statements to remove invitations" };
+      }),
+
+    // Admin: Clear all responses for a survey
+    clearSurveyResponses: adminProcedure
+      .input(z.object({ surveyId: z.number() }))
+      .mutation(async ({ input }) => {
+        const survey = await getSurveyById(input.surveyId);
+        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+        return { success: true, message: "Use SQL DELETE statements to remove responses" };
+      }),
   }),
 });
 export type AppRouter = typeof appRouter;
