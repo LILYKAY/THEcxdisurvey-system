@@ -654,7 +654,7 @@ export default function SurveyPage() {
                     Question {currentQuestion.number}
                     {currentQuestion.required && <span className="ml-1 text-destructive">*</span>}
                   </div>
-                  <h2 className="mb-5 font-serif text-lg sm:text-xl font-semibold leading-snug text-foreground">{currentQuestion.text}</h2>
+                  <h2 className="mb-5 text-lg sm:text-xl font-semibold leading-snug text-foreground">{currentQuestion.text}</h2>
                   <QuestionField question={currentQuestion} value={currentAnswer} onChange={handleAnswer} />
                 </div>
 

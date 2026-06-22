@@ -61,16 +61,16 @@ export default function OrgSurveys() {
 
   return (
     <DashboardLayout navItems={navItems} title="Surveys">
-      <div className="space-y-5">
-        <div className="flex items-center justify-between gap-3">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Surveys</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Build, send, and analyse your surveys</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Surveys</h1>
+            <p className="text-sm text-muted-foreground mt-1">Build, send, and analyse your surveys</p>
           </div>
           <Dialog open={showCreate} onOpenChange={setShowCreate}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white h-10 gap-2 shrink-0">
-                <Plus className="w-4 h-4" />
+              <Button className="h-11 gap-2 shrink-0 font-medium">
+                <Plus className="w-5 h-5" />
                 <span className="hidden sm:inline">New Survey</span>
                 <span className="sm:hidden">New</span>
               </Button>
@@ -101,51 +101,51 @@ export default function OrgSurveys() {
         </div>
 
         {isLoading ? (
-          <div className="text-center text-gray-500 py-10">Loading surveys...</div>
+          <div className="text-center text-muted-foreground py-12">Loading surveys...</div>
         ) : !surveys?.length ? (
           <Card>
-            <CardContent className="p-10 text-center">
-              <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">No surveys yet</p>
-              <p className="text-gray-400 text-sm mt-1">Create your first survey to start collecting feedback</p>
+            <CardContent className="p-12 text-center">
+              <FileText className="w-14 h-14 text-muted-foreground/40 mx-auto mb-4" />
+              <p className="text-foreground font-semibold text-lg">No surveys yet</p>
+              <p className="text-muted-foreground text-sm mt-2">Create your first survey to start collecting feedback</p>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {surveys.map((s) => (
-              <Card key={s.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
+              <Card key={s.id} className="hover:shadow-lg transition-all">
+                <CardContent className="p-5">
                   {/* Survey title + status row */}
-                  <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className="flex items-start justify-between gap-3 mb-4">
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-semibold text-gray-900 leading-snug">{s.title}</h3>
-                      {s.description && <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">{s.description}</p>}
+                      <h3 className="font-semibold text-foreground leading-snug text-lg">{s.title}</h3>
+                      {s.description && <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{s.description}</p>}
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${statusColor[s.status ?? "draft"]}`}>
+                    <span className={`text-xs px-3 py-1.5 rounded-full font-semibold shrink-0 ${statusColor[s.status ?? "draft"]}`}>
                       {s.status ?? "draft"}
                     </span>
                   </div>
 
                   {/* Action buttons — wrap on mobile */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/builder`)} className="h-9 px-3 gap-1.5">
-                      <Settings className="w-3.5 h-3.5" /><span>Build</span>
+                    <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/builder`)} className="h-10 px-4 gap-2 font-medium">
+                      <Settings className="w-4 h-4" /><span>Build</span>
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/send`)} className="h-9 px-3 gap-1.5">
-                      <Send className="w-3.5 h-3.5" /><span>Send</span>
+                    <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/send`)} className="h-10 px-4 gap-2 font-medium">
+                      <Send className="w-4 h-4" /><span>Send</span>
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/analytics`)} className="h-9 px-3 gap-1.5">
-                      <BarChart2 className="w-3.5 h-3.5" /><span>Analytics</span>
+                    <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/analytics`)} className="h-10 px-4 gap-2 font-medium">
+                      <BarChart2 className="w-4 h-4" /><span>Analytics</span>
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/invitations`)} className="h-9 px-3 gap-1.5">
-                      <Mail className="w-3.5 h-3.5" /><span>Invitations</span>
+                    <Button variant="outline" size="sm" onClick={() => navigate(`/org/${orgId}/surveys/${s.id}/invitations`)} className="h-10 px-4 gap-2 font-medium">
+                      <Mail className="w-4 h-4" /><span>Invitations</span>
                     </Button>
                     {s.status === "active" ? (
-                      <Button variant="outline" size="sm" onClick={() => deactivateSurvey.mutate({ id: s.id })} className="h-9 px-3 text-yellow-600 border-yellow-300 hover:bg-yellow-50">
+                      <Button variant="outline" size="sm" onClick={() => deactivateSurvey.mutate({ id: s.id })} className="h-10 px-4 text-yellow-600 border-yellow-300 hover:bg-yellow-50 font-medium">
                         Pause
                       </Button>
                     ) : (
-                      <Button variant="outline" size="sm" onClick={() => activateSurvey.mutate({ id: s.id })} className="h-9 px-3 text-green-600 border-green-300 hover:bg-green-50">
+                      <Button variant="outline" size="sm" onClick={() => activateSurvey.mutate({ id: s.id })} className="h-10 px-4 text-green-600 border-green-300 hover:bg-green-50 font-medium">
                         Activate
                       </Button>
                     )}

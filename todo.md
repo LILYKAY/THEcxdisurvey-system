@@ -344,6 +344,12 @@
 - [x] Redesign Signup page with improved mobile UX and larger inputs (h-12, better spacing)
 - [x] Redesign ForgotPassword and AcceptInvite pages (larger inputs h-12, better mobile UX, improved typography)
 - [x] Redesign DashboardLayout with better typography, spacing, and mobile UX (h-12 nav items, h-16 mobile top bar, improved padding)
-- [ ] Redesign org pages (OrgSurveys, OrgAnalytics, OrgSendSurvey, OrgSurveyBuilder) for mobile and visual polish
-- [ ] Redesign remaining pages (OrgContacts, OrgAudiences, OrgManagers, OrgSettings, OrgRespondents, SurveyPage)
+- [x] Redesign OrgSurveys page with Poppins font, better typography, spacing, and mobile UX
+- [x] Redesign OrgAnalytics page with larger stat cards, better NPS breakdown, improved spacing
+- [x] Redesign OrgSendSurvey page with better tabs, form spacing, and link display
+- [x] Redesign OrgSurveyBuilder page with improved question list, settings panel, and modals
+- [x] Redesign OrgSettings page with improved heading and form spacing
+- [x] Redesign OrgRespondents page with better heading, empty state, and card styling
+- [x] Update SurveyPage.tsx to remove serif font from question headings
+- [x] Note: OrgContacts and OrgAudiences already have modern styling; OrgManagers will be addressed in next phase for Resend Invitation feature
 - [ ] Run TypeScript check, tests, save checkpoint, and report

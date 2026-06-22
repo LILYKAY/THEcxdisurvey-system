@@ -168,47 +168,49 @@ export default function OrgSurveyBuilder() {
   return (
     <DashboardLayout navItems={navItems} title="Survey Builder">
       <div className="max-w-3xl mx-auto space-y-6">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/org/${orgId}/surveys`)} className="text-gray-500 shrink-0">
-            <ArrowLeft className="w-4 h-4 mr-1" /> Back
-          </Button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">{survey?.title ?? "Survey Builder"}</h1>
-            <p className="text-sm text-gray-500">{questions?.length ?? 0} questions</p>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <Button variant="ghost" size="sm" onClick={() => navigate(`/org/${orgId}/surveys`)} className="text-muted-foreground shrink-0 h-10">
+              <ArrowLeft className="w-4 h-4 mr-1" /> Back
+            </Button>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">{survey?.title ?? "Survey Builder"}</h1>
+              <p className="text-sm text-muted-foreground mt-1">{questions?.length ?? 0} questions</p>
+            </div>
           </div>
-          <Button onClick={() => navigate(`/org/${orgId}/surveys/${surveyId}/send`)} className="bg-blue-600 hover:bg-blue-700 text-white shrink-0 gap-2">
+          <Button onClick={() => navigate(`/org/${orgId}/surveys/${surveyId}/send`)} className="shrink-0 gap-2 h-11 px-4 font-medium">
             <Send className="w-4 h-4" /><span className="hidden sm:inline">Send Survey</span>
           </Button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {isLoading ? (
-            <div className="text-center text-gray-500 py-8">Loading questions...</div>
+            <div className="text-center text-muted-foreground py-10">Loading questions...</div>
           ) : !questions?.length ? (
             <Card>
-              <CardContent className="p-8 text-center text-gray-500">
+              <CardContent className="p-10 text-center text-muted-foreground">
                 No questions yet. Add your first question below.
               </CardContent>
             </Card>
           ) : (
             questions.map((q, idx) => (
-              <Card key={q.id} className="hover:shadow-sm transition-shadow">
-                <CardContent className="p-4">
+              <Card key={q.id} className="hover:shadow-lg transition-all">
+                <CardContent className="p-5">
                   <div className="flex items-start gap-3">
-                    <GripVertical className="w-5 h-5 text-gray-300 mt-0.5 shrink-0" />
+                    <GripVertical className="w-5 h-5 text-muted-foreground/40 mt-0.5 shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium text-gray-400">Q{idx + 1}</span>
-                        <Badge variant="outline" className="text-xs capitalize">{q.questionType.replace(/_/g, " ")}</Badge>
-                        {q.isRequired && <Badge className="text-xs bg-blue-50 text-blue-700 border-blue-200">Required</Badge>}
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <span className="text-xs font-semibold text-muted-foreground">Q{idx + 1}</span>
+                        <Badge variant="outline" className="text-xs capitalize font-medium">{q.questionType.replace(/_/g, " ")}</Badge>
+                        {q.isRequired && <Badge className="text-xs bg-blue-50 text-blue-700 border-blue-200 font-medium">Required</Badge>}
                       </div>
-                      <p className="text-sm font-medium text-gray-900">{q.questionText}</p>
+                      <p className="text-sm font-medium text-foreground">{q.questionText}</p>
                     </div>
                     <div className="flex gap-1 shrink-0">
-                      <Button variant="ghost" size="sm" onClick={() => handleEditQuestion(q)} className="text-blue-400 hover:text-blue-600 hover:bg-blue-50">
+                      <Button variant="ghost" size="sm" onClick={() => handleEditQuestion(q)} className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 h-9 w-9 p-0">
                         <Edit2 className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => deleteQ.mutate({ id: q.id, organizationId: orgIdNum })} className="text-red-400 hover:text-red-600 hover:bg-red-50">
+                      <Button variant="ghost" size="sm" onClick={() => deleteQ.mutate({ id: q.id, organizationId: orgIdNum })} className="text-red-500 hover:text-red-700 hover:bg-red-50 h-9 w-9 p-0">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -220,22 +222,22 @@ export default function OrgSurveyBuilder() {
         </div>
 
         {/* Survey Settings Panel */}
-        <Card className="border border-gray-200">
+        <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Survey Settings</CardTitle>
+            <CardTitle className="text-lg font-semibold">Survey Settings</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5">
             {/* Expiry date */}
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <Label className="text-sm font-medium text-gray-700">Expiry Date</Label>
-                <p className="text-xs text-gray-500 mt-0.5">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex-1">
+                <Label className="text-sm font-semibold text-foreground block mb-1">Expiry Date</Label>
+                <p className="text-xs text-muted-foreground">
                   After this date the survey will no longer accept responses.
                 </p>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                 {currentExpiry && (
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm font-medium text-foreground">
                     {currentExpiry.toLocaleDateString(undefined, { dateStyle: "medium" })}
                   </span>
                 )}
@@ -245,7 +247,7 @@ export default function OrgSurveyBuilder() {
                       variant="outline"
                       size="sm"
                       className={cn(
-                        "gap-2",
+                        "gap-2 h-10 px-4 font-medium",
                         currentExpiry && "border-amber-300 text-amber-700 hover:bg-amber-50"
                       )}
                     >
@@ -280,14 +282,14 @@ export default function OrgSurveyBuilder() {
               </div>
             </div>
             {/* Separator */}
-            <div className="border-t border-gray-100" />
+            <div className="border-t border-border" />
 
             {/* Thank You Headline */}
             <div className="space-y-2">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Thank You Headline</Label>
-                  <p className="text-xs text-gray-500 mt-0.5">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="flex-1">
+                  <Label className="text-sm font-semibold text-foreground block mb-1">Thank You Headline</Label>
+                  <p className="text-xs text-muted-foreground">
                     The bold heading shown on the completion screen after submission.
                   </p>
                 </div>
@@ -295,7 +297,7 @@ export default function OrgSurveyBuilder() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="shrink-0"
+                    className="shrink-0 h-10 px-4 font-medium"
                     onClick={() => {
                       setHeadlineDraft((survey as any)?.thankYouHeadline ?? "");
                       setEditingHeadline(true);
@@ -306,34 +308,35 @@ export default function OrgSurveyBuilder() {
                 )}
               </div>
               {(survey as any)?.thankYouHeadline && !editingHeadline && (
-                <p className="text-sm text-gray-700 italic border-l-2 border-primary pl-3">
+                <p className="text-sm text-foreground italic border-l-2 border-primary pl-3">
                   {(survey as any).thankYouHeadline}
                 </p>
               )}
               {editingHeadline && (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Input
                     value={headlineDraft}
                     onChange={(e) => setHeadlineDraft(e.target.value)}
                     placeholder="e.g. Thank you for your time!"
                     maxLength={255}
                     autoFocus
+                    className="h-11"
                   />
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <Button
                       size="sm"
                       onClick={() => setThankYouHeadline.mutate({ id: surveyIdNum, thankYouHeadline: headlineDraft.trim() || null })}
                       disabled={setThankYouHeadline.isPending}
-                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                      className="h-10 px-4 font-medium"
                     >
                       {setThankYouHeadline.isPending ? "Saving…" : "Save"}
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setEditingHeadline(false)}>Cancel</Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditingHeadline(false)} className="h-10 px-4 font-medium">Cancel</Button>
                     {(survey as any)?.thankYouHeadline && (
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-red-500 hover:text-red-700 ml-auto"
+                        className="text-red-500 hover:text-red-700 ml-auto h-10 px-4 font-medium"
                         onClick={() => setThankYouHeadline.mutate({ id: surveyIdNum, thankYouHeadline: null })}
                         disabled={setThankYouHeadline.isPending}
                       >
@@ -346,14 +349,14 @@ export default function OrgSurveyBuilder() {
             </div>
 
             {/* Separator */}
-            <div className="border-t border-gray-100" />
+            <div className="border-t border-border" />
 
             {/* Closing Message */}
             <div className="space-y-2">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-700">Closing Message</Label>
-                  <p className="text-xs text-gray-500 mt-0.5">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="flex-1">
+                  <Label className="text-sm font-semibold text-foreground block mb-1">Closing Message</Label>
+                  <p className="text-xs text-muted-foreground">
                     The body text shown beneath the headline on the completion screen.
                   </p>
                 </div>
@@ -361,7 +364,7 @@ export default function OrgSurveyBuilder() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="shrink-0"
+                    className="shrink-0 h-10 px-4 font-medium"
                     onClick={() => {
                       setClosingDraft((survey as any)?.closingMessage ?? "");
                       setEditingClosing(true);
@@ -372,12 +375,12 @@ export default function OrgSurveyBuilder() {
                 )}
               </div>
               {(survey as any)?.closingMessage && !editingClosing && (
-                <p className="text-sm text-gray-700 italic border-l-2 border-primary pl-3 whitespace-pre-wrap">
+                <p className="text-sm text-foreground italic border-l-2 border-primary pl-3 whitespace-pre-wrap">
                   {(survey as any).closingMessage}
                 </p>
               )}
               {editingClosing && (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Textarea
                     value={closingDraft}
                     onChange={(e) => setClosingDraft(e.target.value)}
@@ -385,21 +388,21 @@ export default function OrgSurveyBuilder() {
                     rows={4}
                     autoFocus
                   />
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <Button
                       size="sm"
                       onClick={() => setClosingMessage.mutate({ id: surveyIdNum, closingMessage: closingDraft.trim() || null })}
                       disabled={setClosingMessage.isPending}
-                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                      className="h-10 px-4 font-medium"
                     >
                       {setClosingMessage.isPending ? "Saving…" : "Save"}
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setEditingClosing(false)}>Cancel</Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditingClosing(false)} className="h-10 px-4 font-medium">Cancel</Button>
                     {(survey as any)?.closingMessage && (
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-red-500 hover:text-red-700 ml-auto"
+                        className="text-red-500 hover:text-red-700 ml-auto h-10 px-4 font-medium"
                         onClick={() => setClosingMessage.mutate({ id: surveyIdNum, closingMessage: null })}
                         disabled={setClosingMessage.isPending}
                       >
@@ -415,19 +418,19 @@ export default function OrgSurveyBuilder() {
 
         <Dialog open={showAdd} onOpenChange={(open) => { setShowAdd(open); if (!open) resetDialog(); }}>
           <DialogTrigger asChild>
-            <Button variant="outline" className="w-full border-dashed border-2 border-gray-300 hover:border-blue-400 hover:text-blue-600 h-12">
+            <Button variant="outline" className="w-full border-dashed border-2 hover:border-primary hover:text-primary h-12 font-medium">
               <Plus className="w-4 h-4 mr-2" /> Add Question
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add Question</DialogTitle>
+              <DialogTitle className="text-lg font-semibold">Add Question</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 pt-2">
+            <div className="space-y-5 pt-2">
               <div>
-                <Label>Question Type</Label>
+                <Label className="font-medium mb-2 block">Question Type</Label>
                 <Select value={qType} onValueChange={setQType}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {QUESTION_TYPES.map((t) => (
                       <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
@@ -436,24 +439,24 @@ export default function OrgSurveyBuilder() {
                 </Select>
               </div>
               <div>
-                <Label>Question Text</Label>
+                <Label className="font-medium mb-2 block">Question Text</Label>
                 <Textarea value={qText} onChange={(e) => setQText(e.target.value)} placeholder="Enter your question..." rows={3} />
               </div>
               {needsOptions && (
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label>Answer Options</Label>
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="font-medium">Answer Options</Label>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="text-blue-600 hover:text-blue-700 text-xs gap-1 h-auto py-1"
+                      className="text-blue-600 hover:text-blue-700 text-xs gap-1 h-auto py-1 px-2 font-medium"
                       onClick={() => setQOptions([...qOptions, ""])}
                     >
                       <Plus className="w-3 h-3" /> Add option
                     </Button>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {qOptions.map((opt, idx) => (
                       <div key={idx} className="flex items-center gap-2">
                         <Input
@@ -464,14 +467,14 @@ export default function OrgSurveyBuilder() {
                             setQOptions(updated);
                           }}
                           placeholder={`Option ${idx + 1}`}
-                          className="flex-1"
+                          className="flex-1 h-10"
                         />
                         {qOptions.length > 2 && (
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="text-red-400 hover:text-red-600 hover:bg-red-50 h-9 w-9 p-0 shrink-0"
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 h-10 w-10 p-0 shrink-0"
                             onClick={() => setQOptions(qOptions.filter((_, i) => i !== idx))}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -484,9 +487,9 @@ export default function OrgSurveyBuilder() {
               )}
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="required" checked={qRequired} onChange={(e) => setQRequired(e.target.checked)} className="rounded" />
-                <Label htmlFor="required">Required</Label>
+                <Label htmlFor="required" className="font-medium">Required</Label>
               </div>
-              <Button onClick={handleAddQuestion} disabled={!qText || createQ.isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+              <Button onClick={handleAddQuestion} disabled={!qText || createQ.isPending} className="w-full h-11 font-medium">
                 {createQ.isPending ? "Adding..." : "Add Question"}
               </Button>
             </div>
@@ -497,27 +500,27 @@ export default function OrgSurveyBuilder() {
         <Dialog open={editingQuestionId !== null} onOpenChange={(open) => { if (!open) setEditingQuestionId(null); }}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Edit Question</DialogTitle>
+              <DialogTitle className="text-lg font-semibold">Edit Question</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 pt-2">
+            <div className="space-y-5 pt-2">
               <div>
-                <Label>Question Text</Label>
+                <Label className="font-medium mb-2 block">Question Text</Label>
                 <Textarea value={editQText} onChange={(e) => setEditQText(e.target.value)} placeholder="Enter your question..." rows={3} />
               </div>
               {questions?.find(q => q.id === editingQuestionId) && ["multiple_choice_single","multiple_choice_multi"].includes(questions.find(q => q.id === editingQuestionId)?.questionType ?? "") && (
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label>Answer Options</Label>
-                    <Button type="button" variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 text-xs gap-1 h-auto py-1" onClick={() => setEditQOptions([...editQOptions, ""])}>
+                  <div className="flex items-center justify-between mb-3">
+                    <Label className="font-medium">Answer Options</Label>
+                    <Button type="button" variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 text-xs gap-1 h-auto py-1 px-2 font-medium" onClick={() => setEditQOptions([...editQOptions, ""])}>
                       <Plus className="w-3 h-3" /> Add option
                     </Button>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {editQOptions.map((opt, idx) => (
                       <div key={idx} className="flex items-center gap-2">
-                        <Input value={opt} onChange={(e) => { const updated = [...editQOptions]; updated[idx] = e.target.value; setEditQOptions(updated); }} placeholder={`Option ${idx + 1}`} className="flex-1" />
+                        <Input value={opt} onChange={(e) => { const updated = [...editQOptions]; updated[idx] = e.target.value; setEditQOptions(updated); }} placeholder={`Option ${idx + 1}`} className="flex-1 h-10" />
                         {editQOptions.length > 2 && (
-                          <Button type="button" variant="ghost" size="sm" className="text-red-400 hover:text-red-600 hover:bg-red-50 h-9 w-9 p-0 shrink-0" onClick={() => setEditQOptions(editQOptions.filter((_, i) => i !== idx))}>
+                          <Button type="button" variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50 h-10 w-10 p-0 shrink-0" onClick={() => setEditQOptions(editQOptions.filter((_, i) => i !== idx))}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         )}
@@ -528,9 +531,9 @@ export default function OrgSurveyBuilder() {
               )}
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="edit-required" checked={editQRequired} onChange={(e) => setEditQRequired(e.target.checked)} className="rounded" />
-                <Label htmlFor="edit-required">Required</Label>
+                <Label htmlFor="edit-required" className="font-medium">Required</Label>
               </div>
-              <Button onClick={handleSaveEditQuestion} disabled={!editQText || updateQ.isPending} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+              <Button onClick={handleSaveEditQuestion} disabled={!editQText || updateQ.isPending} className="w-full h-11 font-medium">
                 {updateQ.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </div>

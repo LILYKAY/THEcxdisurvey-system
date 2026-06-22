@@ -44,29 +44,32 @@ export default function OrgSettings() {
   return (
     <DashboardLayout navItems={navItems} title="Settings">
       <div className="max-w-2xl mx-auto space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Organisation Settings</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Organisation Settings</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage your organization details</p>
+        </div>
         <Card>
-          <CardHeader><CardTitle className="text-base">General Information</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
+          <CardHeader><CardTitle className="text-lg font-semibold">General Information</CardTitle></CardHeader>
+          <CardContent className="space-y-5">
             <div>
-              <Label>Organisation Name</Label>
+              <Label className="font-medium mb-2 block">Organisation Name</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} className="h-11" />
             </div>
             <div>
-              <Label>Description</Label>
+              <Label className="font-medium mb-2 block">Description</Label>
               <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <Label>Industry</Label>
+                <Label className="font-medium mb-2 block">Industry</Label>
                 <Input value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="e.g. Financial Services" className="h-11" />
               </div>
               <div>
-                <Label>Country</Label>
+                <Label className="font-medium mb-2 block">Country</Label>
                 <Input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="e.g. Nigeria" className="h-11" />
               </div>
             </div>
-            <Button onClick={() => update.mutate({ id: orgIdNum, name, description: description || undefined, industry: industry || undefined, country: country || undefined })} disabled={!name || update.isPending}             className="w-full bg-blue-600 hover:bg-blue-700 text-white h-11">
+            <Button onClick={() => update.mutate({ id: orgIdNum, name, description: description || undefined, industry: industry || undefined, country: country || undefined })} disabled={!name || update.isPending} className="w-full h-11 font-medium">
               {update.isPending ? "Saving..." : "Save Settings"}
             </Button>
           </CardContent>
