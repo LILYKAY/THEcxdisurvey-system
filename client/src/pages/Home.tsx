@@ -248,32 +248,54 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Survey Forms ── */}
-      <section id="forms" className="py-12 sm:py-20 md:py-28 bg-muted/40">
+      {/* ── About CXDi ── */}
+      <section id="about" className="py-12 sm:py-20 md:py-28 bg-muted/40">
         <div className="container">
           <div className="mb-10 sm:mb-16 text-center">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
-              Four structured survey forms
+              Trusted by leading African organizations
             </h2>
             <p className="mt-3 sm:mt-4 text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
-              Each form is purpose-built for a specific respondent segment with tailored questions.
+              The CXDi (Customer Experience Design Initiative) is committed to helping African businesses understand and serve their customers better.
             </p>
           </div>
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 stagger-children">
-            {FORMS.map((form) => (
-              <div
-                key={form.key}
-                className={`rounded-xl border p-6 sm:p-8 shadow-elegant transition-all hover:shadow-elegant-lg hover:scale-105 ${form.color}`}
-              >
-                <div className="flex items-center gap-2 mb-4">
-                  <span className={`h-2.5 w-2.5 rounded-full ${form.dot}`} />
-                  <span className="text-xs font-semibold uppercase tracking-wider opacity-75">
-                    {form.count} questions
-                  </span>
-                </div>
-                <h3 className="text-lg sm:text-xl font-bold">{form.label}</h3>
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
+            <div className="rounded-xl border border-border bg-card p-6 sm:p-8 shadow-elegant transition-all hover:shadow-elegant-lg hover:-translate-y-1">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-100">
+                <Globe2 className="h-6 w-6 text-emerald-600" />
               </div>
-            ))}
+              <h3 className="mb-3 text-lg font-bold text-foreground">Pan-African Reach</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Serving businesses across Africa with survey tools designed for African markets and challenges.
+              </p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-6 sm:p-8 shadow-elegant transition-all hover:shadow-elegant-lg hover:-translate-y-1">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100">
+                <Users className="h-6 w-6 text-blue-600" />
+              </div>
+              <h3 className="mb-3 text-lg font-bold text-foreground">Community Focused</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Building a community of organizations committed to understanding customer needs and improving service delivery.
+              </p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-6 sm:p-8 shadow-elegant transition-all hover:shadow-elegant-lg hover:-translate-y-1">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100">
+                <TrendingUp className="h-6 w-6 text-purple-600" />
+              </div>
+              <h3 className="mb-3 text-lg font-bold text-foreground">Data-Driven Growth</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Empowering organizations with actionable insights to drive business growth and customer satisfaction.
+              </p>
+            </div>
+          </div>
+          <div className="mt-10 sm:mt-16 text-center">
+            <p className="text-sm sm:text-base text-muted-foreground mb-4">
+              Learn more about CXDi and our mission at
+            </p>
+            <a href="https://thecxdi.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-semibold transition-colors">
+              thecxdi.com
+              <ChevronRight className="w-4 h-4" />
+            </a>
           </div>
         </div>
       </section>
