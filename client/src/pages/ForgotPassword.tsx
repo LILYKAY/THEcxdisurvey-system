@@ -34,79 +34,80 @@ export default function ForgotPassword() {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
       {/* ── Left panel (branding) ── */}
-      <div className="hidden md:flex md:w-1/2 lg:w-3/5 flex-col justify-between bg-sidebar text-sidebar-foreground p-10 lg:p-16">
+      <div className="hidden md:flex md:w-1/2 lg:w-3/5 flex-col justify-between bg-sidebar text-sidebar-foreground p-12 lg:p-16">
         <div className="flex items-center">
-          <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-10 w-auto rounded-lg" />
+          <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-14 w-auto" />
         </div>
 
-        <div className="space-y-6">
-          <blockquote className="font-serif text-3xl lg:text-4xl font-medium leading-snug text-sidebar-foreground">
-            "Collect customer insights with{" "}
-            <span className="text-amber-400">precision and trust</span>."
+        <div className="space-y-8">
+          <blockquote className="text-3xl lg:text-4xl font-bold leading-tight text-sidebar-foreground">
+            Reset your password and{" "}
+            <span className="text-amber-400">get back to work</span>.
           </blockquote>
-          <p className="text-sidebar-foreground/60 text-base leading-relaxed max-w-md">
-            A professional survey platform for businesses, organizations, and individuals
-            across Africa. Every response is preserved, every insight is real-time.
+          <p className="text-sidebar-foreground/70 text-base leading-relaxed max-w-md font-medium">
+            We'll send you a secure link to reset your password. The link expires in 1 hour for your security.
           </p>
         </div>
 
-        <div className="flex items-center gap-8 text-sidebar-foreground/50 text-sm">
-          <span>4 Pre-built survey forms</span>
+        <div className="flex items-center gap-6 text-sidebar-foreground/60 text-sm font-medium">
+          <span>Secure & encrypted</span>
           <span>·</span>
-          <span>100% data preserved</span>
-          <span>·</span>
-          <span>Real-time analytics</span>
+          <span>1 hour expiry</span>
         </div>
       </div>
 
       {/* ── Right panel (form) ── */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 sm:px-10 md:px-12 lg:px-16">
+      <div className="flex flex-1 flex-col items-center justify-center px-4 sm:px-6 py-12 sm:py-16 md:px-12 lg:px-16">
         {/* Mobile logo */}
-        <div className="flex md:hidden items-center mb-10">
-          <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-9 w-auto rounded-lg" />
+        <div className="flex md:hidden items-center mb-12 sm:mb-16">
+          <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-12 w-auto" />
         </div>
 
         <div className="w-full max-w-sm">
           {submitted ? (
-            <div className="text-center space-y-4">
+            <div className="text-center space-y-6 sm:space-y-8">
               <div className="flex justify-center">
-                <div className={`flex h-16 w-16 items-center justify-center rounded-full ${emailFound ? 'bg-emerald-100' : 'bg-red-100'}`}>
+                <div className={`flex h-20 w-20 items-center justify-center rounded-full ${emailFound ? 'bg-emerald-100' : 'bg-red-100'}`}>
                   {emailFound
-                    ? <CheckCircle2 className="h-8 w-8 text-emerald-600" />
-                    : <span className="text-2xl font-bold text-red-500">!</span>
+                    ? <CheckCircle2 className="h-10 w-10 text-emerald-600" />
+                    : <span className="text-3xl font-bold text-red-500">!</span>
                   }
                 </div>
               </div>
               {emailFound ? (
                 <>
-                  <h1 className="font-serif text-2xl font-semibold text-foreground">Check your inbox</h1>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    A password reset link has been sent to{" "}
-                    <strong className="text-foreground">{email}</strong>. The link expires in 1 hour.
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Didn't receive the email? Check your spam folder or{" "}
-                    <button
-                      type="button"
-                      className="text-primary hover:underline underline-offset-4"
-                      onClick={() => { setSubmitted(false); setEmailFound(null); }}
-                    >
-                      try again
-                    </button>
-                    .
-                  </p>
+                  <div>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Check your inbox</h1>
+                    <p className="mt-3 sm:mt-4 text-sm sm:text-base text-muted-foreground leading-relaxed font-medium">
+                      A password reset link has been sent to{" "}
+                      <strong className="text-foreground">{email}</strong>. The link expires in 1 hour.
+                    </p>
+                    <p className="mt-2 text-xs sm:text-sm text-muted-foreground font-medium">
+                      Didn't receive the email? Check your spam folder or{" "}
+                      <button
+                        type="button"
+                        className="text-primary hover:underline underline-offset-4 font-semibold"
+                        onClick={() => { setSubmitted(false); setEmailFound(null); }}
+                      >
+                        try again
+                      </button>
+                      .
+                    </p>
+                  </div>
                 </>
               ) : (
                 <>
-                  <h1 className="font-serif text-2xl font-semibold text-foreground">No account found</h1>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    There is no account registered with{" "}
-                    <strong className="text-foreground">{email}</strong>. Please check the email address or{" "}
-                    <Link href="/signup" className="text-primary hover:underline underline-offset-4">create a new account</Link>.
-                  </p>
+                  <div>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-foreground">No account found</h1>
+                    <p className="mt-3 sm:mt-4 text-sm sm:text-base text-muted-foreground leading-relaxed font-medium">
+                      There is no account registered with{" "}
+                      <strong className="text-foreground">{email}</strong>. Please check the email address or{" "}
+                      <Link href="/signup" className="text-primary hover:underline underline-offset-4 font-semibold">create a new account</Link>.
+                    </p>
+                  </div>
                   <button
                     type="button"
-                    className="text-sm text-primary hover:underline underline-offset-4"
+                    className="text-sm font-semibold text-primary hover:underline underline-offset-4"
                     onClick={() => { setSubmitted(false); setEmailFound(null); }}
                   >
                     Try a different email
@@ -115,24 +116,24 @@ export default function ForgotPassword() {
               )}
               <Link
                 href="/login"
-                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mt-4"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors mt-6 sm:mt-8"
               >
-                <ArrowLeft className="h-3.5 w-3.5" />
+                <ArrowLeft className="h-4 w-4" />
                 Back to sign in
               </Link>
             </div>
           ) : (
             <>
-              <div className="mb-8">
-                <h1 className="font-serif text-3xl font-semibold text-foreground">Forgot password?</h1>
-                <p className="mt-2 text-sm text-muted-foreground">
+              <div className="mb-8 sm:mb-10">
+                <h1 className="text-3xl sm:text-4xl font-bold text-foreground">Forgot password?</h1>
+                <p className="mt-3 sm:mt-4 text-sm sm:text-base text-muted-foreground font-medium">
                   Enter your email address and we will send you a reset link.
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-sm font-medium text-foreground">
+              <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-7">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-semibold text-foreground">
                     Email address
                   </Label>
                   <Input
@@ -142,20 +143,20 @@ export default function ForgotPassword() {
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-11 bg-card border-border focus-visible:ring-primary"
+                    className="h-12 bg-card border-border focus-visible:ring-primary text-base"
                     required
                   />
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full h-11 font-medium"
+                  className="w-full h-12 font-semibold text-base gap-2"
                   disabled={forgotMutation.isPending}
                 >
                   {forgotMutation.isPending ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending reset link…
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Sending…
                     </>
                   ) : (
                     "Send reset link"
@@ -163,11 +164,11 @@ export default function ForgotPassword() {
                 </Button>
               </form>
 
-              <p className="mt-6 text-center text-sm text-muted-foreground">
+              <p className="mt-8 sm:mt-10 text-center text-sm sm:text-base text-muted-foreground font-medium">
                 Remember your password?{" "}
                 <Link
                   href="/login"
-                  className="font-medium text-primary hover:underline underline-offset-4"
+                  className="font-bold text-primary hover:underline underline-offset-4 transition-colors"
                 >
                   Sign in
                 </Link>
