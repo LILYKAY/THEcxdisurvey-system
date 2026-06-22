@@ -334,3 +334,16 @@
 - [x] Implement loading states and download triggers (using Spinner and toast notifications)
 - [x] Test exports with various survey types (PDF download works, CSV placeholder ready)
 - [x] Run TypeScript check, tests (15/15 passing), save checkpoint, and report
+
+
+## Phase 31: Comprehensive UI & Mobile Optimization with Poppins Font
+
+- [x] Update global CSS: add Poppins font import, improve spacing, shadows, and design tokens
+- [x] Redesign Home landing page with better visual hierarchy and mobile layout (mobile nav, improved spacing, better CTA)
+- [x] Redesign Login page with improved mobile UX and larger inputs (h-12, better spacing)
+- [x] Redesign Signup page with improved mobile UX and larger inputs (h-12, better spacing)
+- [ ] Redesign ForgotPassword and AcceptInvite pages
+- [ ] Redesign DashboardLayout and dashboard pages (OrgDashboard, AdminDashboard) with better cards and spacing
+- [ ] Redesign org pages (OrgSurveys, OrgAnalytics, OrgSendSurvey, OrgSurveyBuilder) for mobile and visual polish
+- [ ] Redesign remaining pages (OrgContacts, OrgAudiences, OrgManagers, OrgSettings, OrgRespondents, SurveyPage)
+- [ ] Run TypeScript check, tests, save checkpoint, and report

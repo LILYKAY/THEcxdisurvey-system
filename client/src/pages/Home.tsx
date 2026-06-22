@@ -8,8 +8,11 @@ import {
   Shield,
   TrendingUp,
   Users,
+  Menu,
+  X,
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { useState } from "react";
 
 
 const FEATURES = [
@@ -85,6 +88,7 @@ const FORMS = [
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleGetStarted = () => {
     if (!isAuthenticated) {
@@ -100,25 +104,29 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Nav ── */}
-      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md">
-        <div className="container flex h-20 items-center justify-between">
-          <a href="/" className="flex items-center">
-            <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-12 w-auto" />
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-sm">
+        <div className="container flex h-16 sm:h-20 items-center justify-between gap-4">
+          <a href="/" className="flex items-center shrink-0">
+            <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-10 sm:h-12 w-auto" />
           </a>
-          <nav className="hidden items-center gap-8 md:flex">
-            <a href="#features" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+          
+          {/* Desktop Nav */}
+          <nav className="hidden items-center gap-8 md:flex flex-1">
+            <a href="#features" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
               Features
             </a>
-            <a href="#forms" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+            <a href="#forms" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
               Survey Forms
             </a>
           </nav>
-          <div className="flex items-center gap-3">
+
+          {/* Desktop CTA */}
+          <div className="hidden md:flex items-center gap-3">
             {isAuthenticated ? (
-              <Button onClick={handleGetStarted} size="sm">
+              <Button onClick={handleGetStarted} size="sm" className="gap-1">
                 Go to Dashboard
-                <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                <ChevronRight className="w-4 h-4" />
               </Button>
             ) : (
               <>
@@ -126,62 +134,114 @@ export default function Home() {
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate("/login")}
+                  className="font-medium"
                 >
                   Sign In
                 </Button>
-                <Button size="sm" onClick={handleGetStarted}>
+                <Button size="sm" className="gap-1">
                   Get Started
-                  <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                  <ChevronRight className="w-4 h-4" />
                 </Button>
               </>
             )}
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-border/40 bg-background">
+            <div className="container py-4 space-y-3">
+              <a href="#features" className="block text-sm font-medium text-muted-foreground hover:text-foreground py-2">
+                Features
+              </a>
+              <a href="#forms" className="block text-sm font-medium text-muted-foreground hover:text-foreground py-2">
+                Survey Forms
+              </a>
+              <div className="pt-2 border-t border-border/40 space-y-2">
+                {isAuthenticated ? (
+                  <Button onClick={handleGetStarted} size="sm" className="w-full gap-1">
+                    Go to Dashboard
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate("/login")}
+                      className="w-full font-medium"
+                    >
+                      Sign In
+                    </Button>
+                    <Button size="sm" onClick={handleGetStarted} className="w-full gap-1">
+                      Get Started
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden pt-16 pb-14 sm:pt-24 sm:pb-20">
+      <section className="relative overflow-hidden pt-12 pb-12 sm:pt-20 sm:pb-24 md:pt-28 md:pb-32">
         {/* Background decoration */}
         <div
           className="pointer-events-none absolute inset-0 -z-10"
           aria-hidden="true"
         >
-          <div className="absolute -top-40 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-primary/5 blur-3xl" />
-          <div className="absolute top-20 right-0 h-[400px] w-[400px] rounded-full bg-accent/10 blur-3xl" />
+          <div className="absolute -top-40 left-1/2 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-primary/8 blur-3xl" />
+          <div className="absolute top-40 right-0 h-[300px] w-[300px] rounded-full bg-accent/12 blur-3xl" />
+          <div className="absolute bottom-0 left-0 h-[300px] w-[300px] rounded-full bg-primary/5 blur-3xl" />
         </div>
 
         <div className="container text-center">
-          <div className="animate-fade-in">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground shadow-sm">
+          <div className="animate-fade-in space-y-6">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs sm:text-sm font-medium text-muted-foreground shadow-sm">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               Built for Africa's growing business ecosystem
             </div>
-            <h1 className="mx-auto max-w-3xl text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl md:text-5xl lg:text-6xl">
+
+            {/* Headline */}
+            <h1 className="mx-auto max-w-4xl text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-foreground">
               Collect customer insights with{" "}
               <span className="text-gradient">precision and trust</span>
             </h1>
-            <p className="mx-auto mt-4 max-w-xl text-sm text-muted-foreground sm:text-base sm:mt-6">
-              A professional survey platform for businesses, organizations, and individuals
-              across Africa. Every response is preserved, every insight is real-time.
-            </p>
-            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-              <Button size="lg" onClick={handleGetStarted} className="px-6 sm:px-8 shadow-elegant w-full sm:w-auto">
-                Start collecting insights
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
 
+            {/* Subheading */}
+            <p className="mx-auto max-w-2xl text-base sm:text-lg text-muted-foreground leading-relaxed">
+              A professional survey platform for businesses, organizations, and individuals across Africa. Every response is preserved, every insight is real-time.
+            </p>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+              <Button size="lg" onClick={handleGetStarted} className="px-6 sm:px-8 shadow-elegant w-full sm:w-auto gap-2 font-semibold">
+                Start collecting insights
+                <ChevronRight className="w-5 h-5" />
+              </Button>
             </div>
           </div>
 
           {/* Stats strip */}
-          <div className="mt-16 grid grid-cols-2 gap-6 border-t border-border pt-10 animate-fade-in sm:grid-cols-2">
+          <div className="mt-16 sm:mt-20 grid grid-cols-2 gap-6 sm:gap-8 border-t border-border pt-10 sm:pt-12">
             {[
               { value: "100%", label: "Response data preserved" },
               { value: "Real-time", label: "Analytics & insights" },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
-                <div className="font-serif text-3xl font-bold text-foreground">{stat.value}</div>
-                <div className="mt-1 text-sm text-muted-foreground">{stat.label}</div>
+                <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">{stat.value}</div>
+                <div className="mt-2 text-xs sm:text-sm text-muted-foreground font-medium">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -189,29 +249,29 @@ export default function Home() {
       </section>
 
       {/* ── Survey Forms ── */}
-      <section id="forms" className="py-12 sm:py-20 bg-secondary/30">
+      <section id="forms" className="py-12 sm:py-20 md:py-28 bg-muted/40">
         <div className="container">
-          <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold text-foreground">
+          <div className="mb-10 sm:mb-16 text-center">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
               Four structured survey forms
             </h2>
-            <p className="mt-3 text-muted-foreground">
+            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
               Each form is purpose-built for a specific respondent segment with tailored questions.
             </p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 stagger-children">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 stagger-children">
             {FORMS.map((form) => (
               <div
                 key={form.key}
-                className={`rounded-xl border p-6 shadow-elegant transition-shadow hover:shadow-elegant-lg ${form.color}`}
+                className={`rounded-xl border p-6 sm:p-8 shadow-elegant transition-all hover:shadow-elegant-lg hover:scale-105 ${form.color}`}
               >
-                <div className="flex items-center gap-2 mb-3">
-                  <span className={`h-2 w-2 rounded-full ${form.dot}`} />
-                  <span className="text-xs font-medium uppercase tracking-wider opacity-70">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className={`h-2.5 w-2.5 rounded-full ${form.dot}`} />
+                  <span className="text-xs font-semibold uppercase tracking-wider opacity-75">
                     {form.count} questions
                   </span>
                 </div>
-                <h3 className="font-serif text-lg font-semibold">{form.label}</h3>
+                <h3 className="text-lg sm:text-xl font-bold">{form.label}</h3>
               </div>
             ))}
           </div>
@@ -219,26 +279,26 @@ export default function Home() {
       </section>
 
       {/* ── Features ── */}
-      <section id="features" className="py-12 sm:py-20">
+      <section id="features" className="py-12 sm:py-20 md:py-28">
         <div className="container">
-          <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold text-foreground">
+          <div className="mb-10 sm:mb-16 text-center">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground">
               Everything you need to collect and understand feedback
             </h2>
-            <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
+            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
               Designed for organizations that take data integrity and actionable insight seriously.
             </p>
           </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
+          <div className="grid gap-6 sm:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
             {FEATURES.map((feature) => (
               <div
                 key={feature.title}
-                className="rounded-xl border border-border bg-card p-6 shadow-elegant transition-shadow hover:shadow-elegant-lg"
+                className="rounded-xl border border-border bg-card p-6 sm:p-8 shadow-elegant transition-all hover:shadow-elegant-lg hover:-translate-y-1"
               >
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <feature.icon className="h-5 w-5 text-primary" />
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                  <feature.icon className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="mb-2 font-semibold text-foreground">{feature.title}</h3>
+                <h3 className="mb-3 text-lg font-bold text-foreground">{feature.title}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   {feature.description}
                 </p>
@@ -248,39 +308,26 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── CTA ── */}
-      <section className="py-12 sm:py-20 bg-primary">
-        <div className="container text-center">
-          <h2 className="font-serif text-3xl font-bold text-primary-foreground">
-            Ready to start collecting insights?
+      {/* ── Footer CTA ── */}
+      <section className="py-12 sm:py-20 md:py-28 bg-primary text-primary-foreground">
+        <div className="container text-center space-y-6">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold">
+            Ready to collect better insights?
           </h2>
-          <p className="mt-4 text-primary-foreground/70">
-            Create your account and begin distributing surveys today.
+          <p className="text-sm sm:text-base opacity-90 max-w-xl mx-auto">
+            Join organizations across Africa using CXDi Surveys to understand their customers better.
           </p>
-          <Button
-            size="lg"
-            className="mt-8 bg-accent text-accent-foreground hover:bg-accent/90 px-10 shadow-elegant"
-            onClick={handleGetStarted}
-          >
-            Get started for free
-            <ChevronRight className="ml-2 h-4 w-4" />
+          <Button size="lg" onClick={handleGetStarted} variant="secondary" className="gap-2 font-semibold">
+            Get Started Free
+            <ChevronRight className="w-5 h-5" />
           </Button>
         </div>
       </section>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-border py-8">
-        <div className="container flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="flex items-center">
-            <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-6 w-auto" />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} TheCxdi Surveys. Built for Africa's business ecosystem.
-          </p>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-            All data preserved with full audit trail
-          </div>
+      <footer className="border-t border-border/40 bg-muted/30 py-8 sm:py-12">
+        <div className="container text-center text-sm text-muted-foreground">
+          <p>&copy; 2026 The CXDi Surveys. All rights reserved.</p>
         </div>
       </footer>
     </div>
