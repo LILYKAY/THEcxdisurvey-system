@@ -10,7 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import { useLocation } from "wouter";
-import { useEffect, useState } from "react";
+
 
 const FEATURES = [
   {
@@ -85,16 +85,6 @@ const FORMS = [
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
-  const [scrollY, setScrollY] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   const handleGetStarted = () => {
     if (!isAuthenticated) {
@@ -150,28 +140,7 @@ export default function Home() {
       </header>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden pt-16 pb-14 sm:pt-24 sm:pb-20 bg-background">
-        {/* Parallax video background */}
-        <div
-          className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
-          aria-hidden="true"
-        >
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="absolute inset-0 h-full w-full object-cover"
-            style={{
-              transform: `translateY(${scrollY * 0.5}px)`,
-            }}
-          >
-            <source src="/manus-storage/hf_20260622_213227_6c3fa20f-a7a5-45fd-987f-80507c6e69d1_40631353.mp4" type="video/mp4" />
-          </video>
-          {/* Overlay to ensure text readability */}
-          <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background/80" />
-        </div>
-
+      <section className="relative overflow-hidden pt-16 pb-14 sm:pt-24 sm:pb-20">
         {/* Background decoration */}
         <div
           className="pointer-events-none absolute inset-0 -z-10"
@@ -181,7 +150,7 @@ export default function Home() {
           <div className="absolute top-20 right-0 h-[400px] w-[400px] rounded-full bg-accent/10 blur-3xl" />
         </div>
 
-        <div className="container text-center relative z-10">
+        <div className="container text-center">
           <div className="animate-fade-in">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground shadow-sm">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
