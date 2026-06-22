@@ -161,29 +161,29 @@ function DashboardLayoutContent({
     <>
       <div className="relative" ref={sidebarRef}>
         <Sidebar collapsible="icon" className="border-r-0" disableTransition={isResizing}>
-          <SidebarHeader className="h-auto py-4 justify-center">
-            <div className="flex flex-col items-center gap-3 px-2 transition-all w-full">
+          <SidebarHeader className="h-auto py-4 px-2 justify-between">
+            <div className="flex items-center justify-between w-full">
               {!isCollapsed && (
-                <Link href="/" className="flex items-center cursor-pointer min-w-0">
+                <Link href="/" className="flex items-center cursor-pointer flex-1 min-w-0">
                   <img
                     src="/manus-storage/cxdi-logo-transparent_f890673f.png"
                     alt="The CXDi Surveys"
-                    className="h-16 w-auto"
+                    className="h-20 w-auto"
                   />
                 </Link>
               )}
               <button
                 onClick={toggleSidebar}
-                className="h-9 w-9 flex items-center justify-center hover:bg-accent rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
+                className="h-10 w-10 flex items-center justify-center hover:bg-accent rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0 ml-2"
                 aria-label="Toggle navigation"
               >
-                <PanelLeft className="h-4 w-4 text-muted-foreground" />
+                <PanelLeft className="h-5 w-5 text-muted-foreground" />
               </button>
             </div>
           </SidebarHeader>
 
           <SidebarContent className="gap-0">
-            <SidebarMenu className="px-2 py-1">
+            <SidebarMenu className="px-2 py-2 space-y-1">
               {navItems.map((item) => {
                 const isActive = item.active ?? location === item.href;
                 return (
@@ -192,9 +192,9 @@ function DashboardLayoutContent({
                       isActive={isActive}
                       onClick={() => handleNavClick(item.href)}
                       tooltip={item.label}
-                      className="h-11 transition-all font-normal"
+                      className="h-12 transition-all font-medium text-sm"
                     >
-                      {item.icon && <item.icon className={`h-4 w-4 ${isActive ? "text-primary" : ""}`} />}
+                      {item.icon && <item.icon className={`h-5 w-5 ${isActive ? "text-primary" : ""}`} />}
                       <span>{item.label}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -203,18 +203,18 @@ function DashboardLayoutContent({
             </SidebarMenu>
           </SidebarContent>
 
-          <SidebarFooter className="p-3">
+          <SidebarFooter className="p-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-3 rounded-lg px-1 py-2 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <Avatar className="h-9 w-9 border shrink-0">
-                    <AvatarFallback className="text-xs font-medium">
+                <button className="flex items-center gap-3 rounded-lg px-2 py-3 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <Avatar className="h-10 w-10 border shrink-0">
+                    <AvatarFallback className="text-sm font-semibold">
                       {user?.name?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-                    <p className="text-sm font-medium truncate leading-none">{user?.name || "-"}</p>
-                    <p className="text-xs text-muted-foreground truncate mt-1.5 capitalize">{(user as any)?.role?.replace("_", " ") || user?.email || "-"}</p>
+                    <p className="text-sm font-semibold truncate leading-none">{user?.name || "-"}</p>
+                    <p className="text-xs text-muted-foreground truncate mt-1 capitalize">{(user as any)?.role?.replace("_", " ") || user?.email || "-"}</p>
                   </div>
                 </button>
               </DropdownMenuTrigger>
@@ -239,10 +239,10 @@ function DashboardLayoutContent({
       <SidebarInset>
         {/* Mobile top bar — sticky, full-width */}
         {isMobile && (
-          <div className="flex border-b h-14 items-center justify-between bg-background/95 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/95 sticky top-0 z-40">
-            <div className="flex items-center gap-2">
+          <div className="flex border-b h-16 items-center justify-between bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/95 sticky top-0 z-40">
+            <div className="flex items-center gap-3">
               <SidebarTrigger className="h-10 w-10 rounded-lg" />
-              <span className="font-semibold text-sm tracking-tight text-foreground truncate max-w-[180px]">
+              <span className="font-bold text-base tracking-tight text-foreground truncate max-w-[160px]">
                 {activeItem?.label ?? title ?? appName}
               </span>
             </div>
@@ -250,12 +250,12 @@ function DashboardLayoutContent({
               <img
                 src="/manus-storage/cxdi-logo-transparent_f890673f.png"
                 alt="The CXDi Surveys"
-                className="h-7 w-auto"
+                className="h-8 w-auto"
               />
             </Link>
           </div>
         )}
-        <main className="flex-1 p-3 sm:p-4 md:p-6 overflow-x-hidden">{children}</main>
+        <main className="flex-1 p-4 sm:p-5 md:p-6 lg:p-8 overflow-x-hidden">{children}</main>
       </SidebarInset>
     </>
   );

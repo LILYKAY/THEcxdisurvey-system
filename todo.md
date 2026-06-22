@@ -343,7 +343,7 @@
 - [x] Redesign Login page with improved mobile UX and larger inputs (h-12, better spacing)
 - [x] Redesign Signup page with improved mobile UX and larger inputs (h-12, better spacing)
 - [x] Redesign ForgotPassword and AcceptInvite pages (larger inputs h-12, better mobile UX, improved typography)
-- [ ] Redesign DashboardLayout and dashboard pages (OrgDashboard, AdminDashboard) with better cards and spacing
+- [x] Redesign DashboardLayout with better typography, spacing, and mobile UX (h-12 nav items, h-16 mobile top bar, improved padding)
 - [ ] Redesign org pages (OrgSurveys, OrgAnalytics, OrgSendSurvey, OrgSurveyBuilder) for mobile and visual polish
 - [ ] Redesign remaining pages (OrgContacts, OrgAudiences, OrgManagers, OrgSettings, OrgRespondents, SurveyPage)
 - [ ] Run TypeScript check, tests, save checkpoint, and report
