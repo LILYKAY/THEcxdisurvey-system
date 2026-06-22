@@ -108,7 +108,7 @@ export default function Home() {
       <header className="sticky top-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur-sm">
         <div className="container flex h-16 sm:h-20 items-center justify-between gap-4">
           <a href="/" className="flex items-center shrink-0">
-            <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-12 sm:h-14 w-auto object-contain" />
+            <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-14 sm:h-16 w-auto object-contain" />
           </a>
           
           {/* Desktop Nav */}
