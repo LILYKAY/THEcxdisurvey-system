@@ -93,6 +93,9 @@ import {
   getOrgManagersByOrg,
   createOrgManager,
   revokeOrgManager,
+  getSurveyOpenEndedResponses,
+  upsertAiSummary,
+  getAiSummaryBySurvey,
 } from "./db";
 import { sendSurveyInvitationEmail, sendReportEmail, sendPasswordResetEmail } from "./email";
 import { generateSurveyPdf, type PdfReportOptions } from "./pdf";
@@ -550,6 +553,48 @@ export const appRouter = router({
       if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
       const token = nanoid(32);
       return createSurveyLink({ surveyId: input.surveyId, token, label: input.label });
+    }),
+    generateAiSummary: protectedProcedure.input(z.object({ surveyId: z.number() })).mutation(async ({ input, ctx }) => {
+      const survey = await getSurveyById(input.surveyId);
+      if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+      const org = await getOrganizationById(survey.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
+      
+      const { analyzeSurveyResponses } = await import("./ai-analysis");
+      const responses = await getSurveyOpenEndedResponses(input.surveyId);
+      
+      if (responses.length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "No open-ended responses found for this survey" });
+      }
+      
+      const analysis = await analyzeSurveyResponses(responses);
+      if (!analysis) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to analyze responses" });
+      }
+      
+      await upsertAiSummary({
+        surveyId: input.surveyId,
+        organizationId: survey.organizationId,
+        themes: analysis.themes,
+        sentimentBreakdown: analysis.sentimentBreakdown,
+        keyPhrases: analysis.keyPhrases,
+        insights: analysis.insights,
+        generatedAt: new Date(),
+      });
+      
+      return analysis;
+    }),
+    getAiSummary: protectedProcedure.input(z.object({ surveyId: z.number() })).query(async ({ input, ctx }) => {
+      const survey = await getSurveyById(input.surveyId);
+      if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+      const org = await getOrganizationById(survey.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
+      
+      return getAiSummaryBySurvey(input.surveyId);
     }),
     downloadPdf: protectedProcedure.input(z.object({ surveyId: z.number() })).mutation(async ({ input, ctx }) => {
       const survey = await getSurveyById(input.surveyId);

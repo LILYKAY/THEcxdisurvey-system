@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, ne, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, ne, sql } from "drizzle-orm";
 import { type PostgresJsDatabase, drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import {
@@ -1056,4 +1056,92 @@ export async function revokeOrgManager(userId: number) {
   if (!db) return false;
   await db.update(users).set({ role: "user", managedOrgId: null }).where(eq(users.id, userId));
   return true;
+}
+
+
+// ─── AI Summary Helpers ───────────────────────────────────────────────────────
+export async function getSurveyOpenEndedResponses(surveyId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  // Get all open-ended questions for this survey
+  const openEndedQuestions = await db
+    .select()
+    .from(surveyQuestions)
+    .where(and(
+      eq(surveyQuestions.surveyId, surveyId),
+      eq(surveyQuestions.questionType, "open_ended"),
+      eq(surveyQuestions.isActive, true),
+    ));
+
+  if (openEndedQuestions.length === 0) return [];
+
+  // Get all answers for these questions from completed responses
+  const questionKeys = openEndedQuestions.map(q => q.questionKey);
+  const answers = await db
+    .select({
+      questionKey: responseAnswers.questionKey,
+      value: responseAnswers.value,
+      questionText: surveyQuestions.questionText,
+    })
+    .from(responseAnswers)
+    .innerJoin(surveyResponses, eq(responseAnswers.surveyResponseId, surveyResponses.id))
+    .innerJoin(surveyQuestions, eq(responseAnswers.questionKey, surveyQuestions.questionKey))
+    .where(and(
+      eq(surveyResponses.surveyId, surveyId),
+      eq(surveyResponses.isComplete, true),
+      inArray(responseAnswers.questionKey, questionKeys),
+    ))
+    .orderBy(desc(responseAnswers.createdAt));
+
+  return answers;
+}
+
+export async function upsertAiSummary(data: {
+  surveyId: number;
+  organizationId: number;
+  themes: unknown;
+  sentimentBreakdown: unknown;
+  keyPhrases: unknown;
+  insights: string;
+  generatedAt: Date;
+}) {
+  const db = await getDb();
+  if (!db) return false;
+
+  const { surveyAiSummaries } = await import("../drizzle/schema");
+  
+  const updateData = {
+    themes: data.themes,
+    sentimentBreakdown: data.sentimentBreakdown,
+    keyPhrases: data.keyPhrases,
+    insights: data.insights,
+    generatedAt: data.generatedAt,
+    cachedAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  await db
+    .insert(surveyAiSummaries)
+    .values(data)
+    .onConflictDoUpdate({
+      target: surveyAiSummaries.surveyId,
+      set: updateData,
+    });
+
+  return true;
+}
+
+export async function getAiSummaryBySurvey(surveyId: number) {
+  const db = await getDb();
+  if (!db) return null;
+
+  const { surveyAiSummaries } = await import("../drizzle/schema");
+  const result = await db
+    .select()
+    .from(surveyAiSummaries)
+    .where(eq(surveyAiSummaries.surveyId, surveyId))
+    .limit(1);
+
+  return result[0] ?? null;
 }

@@ -300,3 +300,20 @@ export const orgManagerInvites = pgTable("org_manager_invites", {
 });
 export type OrgManagerInvite = typeof orgManagerInvites.$inferSelect;
 export type InsertOrgManagerInvite = typeof orgManagerInvites.$inferInsert;
+
+// ─── Survey AI Summaries ──────────────────────────────────────────────────────
+export const surveyAiSummaries = pgTable("survey_ai_summaries", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  surveyId: integer("surveyId").notNull().unique(),
+  organizationId: integer("organizationId").notNull(),
+  themes: json("themes"), // Array of { theme: string, count: number, examples: string[] }
+  sentimentBreakdown: json("sentimentBreakdown"), // { positive: number, negative: number, neutral: number }
+  keyPhrases: json("keyPhrases"), // Array of { phrase: string, frequency: number }
+  insights: text("insights"), // Actionable insights and recommendations
+  generatedAt: timestamp("generatedAt").notNull(),
+  cachedAt: timestamp("cachedAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+export type SurveyAiSummary = typeof surveyAiSummaries.$inferSelect;
+export type InsertSurveyAiSummary = typeof surveyAiSummaries.$inferInsert;

@@ -364,14 +364,32 @@
 - [x] Verify TypeScript compilation succeeds with all fixes
 - [x] Verify all 15 unit tests pass with security fixes applied
 
-## Phase 28: DigitalOcean Production Deployment
+## Phase 28: PostgreSQL Migration from MySQL
+
+- [x] Replace MySQL `onDuplicateKeyUpdate` with PostgreSQL `onConflictDoUpdate` in upsertUser function
+- [x] Replace MySQL `onDuplicateKeyUpdate` with PostgreSQL `onConflictDoUpdate` in upsertMfaSettings function
+- [x] Replace MySQL `onDuplicateKeyUpdate` with PostgreSQL `onConflictDoUpdate` in upsertEmailBranding function
+- [x] Fix variable reference in upsertEmailBranding (changed `branding` to `data`)
+- [x] Fix all pgEnum definitions to use proper Drizzle ORM PostgreSQL syntax (add column name parameter)
+- [x] Update auth.logout test to reflect new cookie security settings (SameSite=strict)
+- [x] Verify TypeScript compilation succeeds (0 errors)
+- [x] Verify all 15 unit tests pass
+- [x] Run `pnpm drizzle-kit generate` to create PostgreSQL migration files
+- [x] Review generated SQL migration files (233 lines, all 18 tables with proper enums)
+- [ ] Provision DigitalOcean Managed PostgreSQL database
+- [ ] Apply migrations to DigitalOcean PostgreSQL database
+- [ ] Test database connection with connection string
+- [ ] Verify all procedures work with PostgreSQL backend
+
+## Phase 29: DigitalOcean Production Deployment
 
 - [x] Fix cookie security configuration (SameSite=strict and domain restriction)
 - [x] Create comprehensive DigitalOcean deployment guide with Nginx, SSL, PM2
 - [x] Create automated deployment scripts for one-click setup
 - [ ] Provision DigitalOcean Droplet (Ubuntu 24.04, 2GB+ RAM)
-- [ ] Provision DigitalOcean Managed MySQL Database
+- [ ] Provision DigitalOcean Managed PostgreSQL Database
 - [ ] Configure DNS records (A record for domain, CNAME for www)
+- [ ] Update environment variables on Droplet with PostgreSQL connection string
 - [ ] Run deployment script on Droplet (full automated setup)
 - [ ] Verify HTTPS working and SSL certificate auto-renewal
 - [ ] Verify Nginx proxying correctly to Node.js app
@@ -380,3 +398,47 @@
 - [ ] Setup automated database backups
 - [ ] Enable UFW firewall and security hardening
 - [ ] Create runbook for common maintenance tasks
+
+## Phase 30: AI-Powered Response Analysis Feature
+
+### Database Schema
+- [x] Add survey_ai_summaries table: id, surveyId, organizationId, generatedAt, themes (JSON), sentiment_breakdown (JSON), key_phrases (JSON), insights (text), cached_at
+- [x] Apply schema migration for survey_ai_summaries table (migration file: drizzle/0001_colossal_selene.sql)
+
+### Backend Procedures
+- [x] Create db.ts helper: getSurveyOpenEndedResponses (fetch all open-ended answers for a survey)
+- [x] Create db.ts helper: upsertAiSummary (store/update AI analysis results)
+- [x] Create db.ts helper: getAiSummaryBySurvey (retrieve cached AI summary)
+- [x] Create server/ai-analysis.ts: analyzeSurveyResponses procedure using invokeLLM
+  - [x] Extract themes from responses using structured JSON schema
+  - [x] Analyze sentiment distribution (positive/negative/neutral percentages)
+  - [x] Identify key phrases and frequency counts
+  - [x] Generate actionable insights and recommendations
+- [x] Create tRPC procedure: survey.generateAiSummary (protected, org-scoped)
+- [x] Create tRPC procedure: survey.getAiSummary (protected, org-scoped)
+- [x] Add vitest tests for AI analysis procedures (7 tests passing)
+
+### Frontend UI
+- [x] Create AiInsights.tsx component with:
+  - [x] "Generate Summary" button (shows loading spinner during analysis)
+  - [x] Display themes with visual cards (theme name, count, examples)
+  - [x] Display sentiment breakdown (percentage bars with colors)
+  - [x] Display key phrases (tag cloud with frequency)
+  - [x] Display actionable insights (formatted text with recommendations)
+  - [x] Show "Last generated: [timestamp]" and refresh button
+  - [x] Error handling and fallback UI if analysis fails
+  - [x] Loading skeleton for AI Insights tab
+- [ ] Integrate AiInsights component into OrgSurveyAnalytics page
+- [ ] Test UI responsiveness on mobile/tablet/desktop
+
+### Testing & Validation
+- [x] Write vitest tests for AI analysis procedures (7 tests passing)
+- [x] Verify TypeScript compilation (0 errors)
+- [x] Verify all 22 tests pass (including 7 AI analysis tests)
+- [ ] Test with various survey types and response counts
+- [ ] Test UI responsiveness on mobile/tablet/desktop
+
+### Checkpoint & Delivery
+- [ ] Save checkpoint with AI analysis feature
+- [ ] Integrate AiInsights into OrgSurveyAnalytics page
+- [ ] Provide updated project version to user
