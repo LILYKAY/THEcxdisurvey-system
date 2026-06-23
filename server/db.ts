@@ -1,6 +1,6 @@
 import { and, count, desc, eq, gte, ne, sql } from "drizzle-orm";
-import { type MySql2Database, drizzle } from "drizzle-orm/mysql2";
-import mysql from "mysql2/promise";
+import { type PostgresJsDatabase, drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import {
   InsertAudience,
   AudienceContact,
@@ -40,18 +40,15 @@ import {
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
-let _db: MySql2Database | null = null;
+let _db: PostgresJsDatabase | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      const pool = mysql.createPool({
-        uri: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: true },
-        waitForConnections: true,
-        connectionLimit: 5,
-        enableKeepAlive: true,
+      const client = postgres(process.env.DATABASE_URL, {
+        ssl: 'require',
+        max: 5,
       });
-      _db = drizzle(pool);
+      _db = drizzle(client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -98,7 +95,10 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   if (!values.lastSignedIn) values.lastSignedIn = new Date();
   if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
 
-  await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
+  await db.insert(users).values(values).onConflictDoUpdate({
+    target: users.openId,
+    set: updateSet,
+  });
 }
 
 export async function getUserByOpenId(openId: string) {
@@ -169,7 +169,10 @@ export async function upsertMfaSettings(userId: number, mfaEnabled: boolean) {
   await db
     .insert(mfaSettings)
     .values({ userId, mfaEnabled })
-    .onDuplicateKeyUpdate({ set: { mfaEnabled, updatedAt: new Date() } });
+    .onConflictDoUpdate({
+      target: mfaSettings.userId,
+      set: { mfaEnabled, updatedAt: new Date() },
+    });
   return true;
 }
 
@@ -297,18 +300,20 @@ export async function getEmailBranding(organizationId: number) {
 export async function upsertEmailBranding(data: InsertEmailBranding) {
   const db = await getDb();
   if (!db) return false;
+  const updateData = {
+    logoUrl: data.logoUrl,
+    primaryColor: data.primaryColor,
+    secondaryColor: data.secondaryColor,
+    signatureTag: data.signatureTag,
+    usePlatformBranding: data.usePlatformBranding,
+    updatedAt: new Date(),
+  };
   await db
     .insert(emailBranding)
     .values(data)
-    .onDuplicateKeyUpdate({
-      set: {
-        logoUrl: data.logoUrl,
-        primaryColor: data.primaryColor,
-        secondaryColor: data.secondaryColor,
-        signatureTag: data.signatureTag,
-        usePlatformBranding: data.usePlatformBranding,
-        updatedAt: new Date(),
-      },
+    .onConflictDoUpdate({
+      target: emailBranding.organizationId,
+      set: updateData,
     });
   return true;
 }
@@ -421,9 +426,8 @@ export async function getSurveyEndMessage(surveyId: number): Promise<string | nu
 export async function createSurveyQuestion(data: InsertSurveyQuestion) {
   const db = await getDb();
   if (!db) return null;
-  const [result] = await db.insert(surveyQuestions).values(data).$returningId();
-  const [q] = await db.select().from(surveyQuestions).where(eq(surveyQuestions.id, result.id));
-  return q ?? null;
+  const result = await db.insert(surveyQuestions).values(data).returning();
+  return result[0] ?? null;
 }
 
 export async function updateSurveyQuestion(id: number, data: Partial<InsertSurveyQuestion>) {
@@ -496,9 +500,8 @@ export async function getContactsByOrg(organizationId: number) {
 export async function createContact(data: InsertContact) {
   const db = await getDb();
   if (!db) return null;
-  const [result] = await db.insert(contacts).values(data).$returningId();
-  const [contact] = await db.select().from(contacts).where(eq(contacts.id, result.id));
-  return contact ?? null;
+  const result = await db.insert(contacts).values(data).returning();
+  return result[0] ?? null;
 }
 
 export async function bulkCreateContacts(data: InsertContact[]) {
@@ -540,9 +543,8 @@ export async function getAudiencesByOrg(organizationId: number) {
 export async function createAudience(data: InsertAudience) {
   const db = await getDb();
   if (!db) return null;
-  const [result] = await db.insert(audiences).values(data).$returningId();
-  const [audience] = await db.select().from(audiences).where(eq(audiences.id, result.id));
-  return audience ?? null;
+  const result = await db.insert(audiences).values(data).returning();
+  return result[0] ?? null;
 }
 
 export async function deleteAudience(id: number) {
