@@ -755,14 +755,54 @@ export const appRouter = router({
         return { responseId: response.id };
       }),
     saveAnswer: publicProcedure
-      .input(z.object({ responseId: z.number(), questionKey: z.string(), value: z.unknown() }))
+      .input(z.object({ responseId: z.number(), token: z.string(), questionKey: z.string(), value: z.unknown() }))
       .mutation(async ({ input }) => {
+        // SECURITY FIX: Validate that token matches responseId to prevent data injection
+        const inv = await getInvitationByToken(input.token);
+        const link = inv ? null : await getSurveyLinkByToken(input.token);
+        
+        if (!inv && !link) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid survey token" });
+        }
+        
+        // Fetch the response to verify it belongs to this survey
+        const response = await getSurveyResponseById(input.responseId);
+        if (!response) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Response not found" });
+        }
+        
+        // Verify response belongs to the survey associated with this token
+        const surveyId = inv?.surveyId ?? link?.surveyId;
+        if (response.surveyId !== surveyId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Response does not match survey token" });
+        }
+        
         await upsertResponseAnswer(input.responseId, input.questionKey, input.value);
         return { success: true };
       }),
     completeResponse: publicProcedure
       .input(z.object({ responseId: z.number(), token: z.string(), npsScore: z.number().min(0).max(10).optional(), csatScore: z.number().min(1).max(5).optional(), cesScore: z.number().min(1).max(7).optional() }))
       .mutation(async ({ input }) => {
+        // SECURITY FIX: Validate that token matches responseId to prevent response hijacking
+        const inv = await getInvitationByToken(input.token);
+        const link = inv ? null : await getSurveyLinkByToken(input.token);
+        
+        if (!inv && !link) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid survey token" });
+        }
+        
+        // Fetch the response to verify it belongs to this survey
+        const response = await getSurveyResponseById(input.responseId);
+        if (!response) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Response not found" });
+        }
+        
+        // Verify response belongs to the survey associated with this token
+        const surveyId = inv?.surveyId ?? link?.surveyId;
+        if (response.surveyId !== surveyId) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Response does not match survey token" });
+        }
+        
         let sentiment: "promoter" | "passive" | "detractor" | undefined;
         if (input.npsScore !== undefined) {
           if (input.npsScore >= 9) sentiment = "promoter";
@@ -770,7 +810,6 @@ export const appRouter = router({
           else sentiment = "detractor";
         }
         await completeSurveyResponse(input.responseId, { npsScore: input.npsScore, csatScore: input.csatScore, cesScore: input.cesScore, sentiment });
-        const inv = await getInvitationByToken(input.token);
         if (inv) await updateInvitationStatus(input.token, "completed", { completedAt: new Date(), surveyResponseId: input.responseId });
         return { success: true };
       }),
@@ -784,7 +823,20 @@ export const appRouter = router({
       if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
       return getRespondentsByOrg(input.organizationId);
     }),
-    getAnswers: protectedProcedure.input(z.object({ responseId: z.number() })).query(async ({ input }) => {
+    getAnswers: protectedProcedure.input(z.object({ responseId: z.number() })).query(async ({ input, ctx }) => {
+      // SECURITY FIX: Verify user has access to this response's organization
+      const response = await getSurveyResponseById(input.responseId);
+      if (!response) throw new TRPCError({ code: "NOT_FOUND", message: "Response not found" });
+      
+      const org = await getOrganizationById(response.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND", message: "Organization not found" });
+      
+      // Check authorization: user must be admin, org owner, or org manager
+      const isOrgManager = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgManager) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this response" });
+      }
+      
       return getAnswersByResponse(input.responseId);
     }),
   }),

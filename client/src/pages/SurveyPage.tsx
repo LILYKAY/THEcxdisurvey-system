@@ -518,9 +518,9 @@ export default function SurveyPage() {
   };
 
   const handleNext = async () => {
-    if (!responseId || !currentQuestion) return;
+    if (!responseId || !currentQuestion || !token) return;
     try {
-      await saveAnswer.mutateAsync({ responseId, questionKey: currentQuestion.key, value: currentAnswer });
+      await saveAnswer.mutateAsync({ responseId, token, questionKey: currentQuestion.key, value: currentAnswer });
     } catch (e) { console.error("saveAnswer error:", e); }
     setCurrentQ((q) => q + 1);
   };
@@ -532,8 +532,8 @@ export default function SurveyPage() {
     setSubmitting(true);
     setSubmitError(null);
     try {
-      if (currentQuestion) {
-        await saveAnswer.mutateAsync({ responseId, questionKey: currentQuestion.key, value: currentAnswer });
+      if (currentQuestion && token) {
+        await saveAnswer.mutateAsync({ responseId, token, questionKey: currentQuestion.key, value: currentAnswer });
       }
       let npsScore: number | undefined;
       let csatScore: number | undefined;

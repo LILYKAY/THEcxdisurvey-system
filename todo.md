@@ -354,3 +354,12 @@
 - [x] Note: OrgContacts and OrgAudiences already have modern styling; OrgManagers will be addressed in next phase for Resend Invitation feature
 - [x] Add dark gradient background to logo area in survey page header
 - [x] Run TypeScript check, tests, save checkpoint, and report
+
+## Phase 27: Critical Security Fixes
+
+- [x] Fix Critical Issue #1: Add authorization check to respondents.getAnswers endpoint (prevent unauthorized data access)
+- [x] Fix Critical Issue #2: Add response ownership validation to public.saveAnswer endpoint (prevent data injection)
+- [x] Fix Critical Issue #2b: Add response ownership validation to public.completeResponse endpoint (prevent response hijacking)
+- [x] Update SurveyPage.tsx to pass token parameter to saveAnswer calls
+- [x] Verify TypeScript compilation succeeds with all fixes
+- [x] Verify all 15 unit tests pass with security fixes applied
