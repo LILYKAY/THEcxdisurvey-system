@@ -363,3 +363,20 @@
 - [x] Update SurveyPage.tsx to pass token parameter to saveAnswer calls
 - [x] Verify TypeScript compilation succeeds with all fixes
 - [x] Verify all 15 unit tests pass with security fixes applied
+
+## Phase 28: DigitalOcean Production Deployment
+
+- [x] Fix cookie security configuration (SameSite=strict and domain restriction)
+- [x] Create comprehensive DigitalOcean deployment guide with Nginx, SSL, PM2
+- [x] Create automated deployment scripts for one-click setup
+- [ ] Provision DigitalOcean Droplet (Ubuntu 24.04, 2GB+ RAM)
+- [ ] Provision DigitalOcean Managed MySQL Database
+- [ ] Configure DNS records (A record for domain, CNAME for www)
+- [ ] Run deployment script on Droplet (full automated setup)
+- [ ] Verify HTTPS working and SSL certificate auto-renewal
+- [ ] Verify Nginx proxying correctly to Node.js app
+- [ ] Test application functionality on production domain
+- [ ] Setup monitoring and log rotation
+- [ ] Setup automated database backups
+- [ ] Enable UFW firewall and security hardening
+- [ ] Create runbook for common maintenance tasks
