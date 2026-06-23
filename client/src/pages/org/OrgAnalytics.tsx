@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
-import { ArrowLeft, BarChart2, Users, CheckCircle, TrendingUp, Download } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, BarChart2, Users, CheckCircle, TrendingUp, Download, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { AiInsights } from "@/components/AiInsights";
 
 
 function ExportButtons({ surveyId, surveyTitle }: { surveyId: number; surveyTitle: string }) {
@@ -117,6 +119,16 @@ export default function OrgAnalytics() {
           <ExportButtons surveyId={surveyIdNum} surveyTitle={survey?.title ?? "Survey"} />
         </div>
 
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="ai-insights" className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              AI Insights
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Card>
             <CardContent className="p-5">
@@ -213,6 +225,12 @@ export default function OrgAnalytics() {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="ai-insights" className="space-y-6">
+            <AiInsights surveyId={surveyIdNum} />
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );
