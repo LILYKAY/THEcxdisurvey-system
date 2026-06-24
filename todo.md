@@ -402,7 +402,9 @@
 - [x] All tests passing (22 tests)
 
 ### Phase 29.3: Deploy to DigitalOcean via Web Console
-- [ ] User provides DigitalOcean Spaces secret key
+- [x] User provides DigitalOcean Spaces secret key
+- [x] Create comprehensive deployment guide (DEPLOYMENT_GUIDE.md)
+- [x] Update deploy.sh with all credentials (PostgreSQL, OpenAI, DO Spaces, SSL email)
 - [ ] User runs the deployment script in DigitalOcean Web Console
 - [ ] Application is cloned, dependencies installed, and built
 - [ ] Nginx and PM2 are configured and started

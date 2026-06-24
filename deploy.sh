@@ -23,7 +23,7 @@ OPENAI_API_KEY="sk-proj-LWQ_vlO97h5gOpScy3bED2pzge0hKn5z16zgwFT2vbtkeGuQotGNSi2O
 
 # DigitalOcean Spaces Credentials
 DO_SPACES_ACCESS_KEY="86+amEVSy8jljDHsehh9RoO+rcGs2kQSkB1ao5EuHlM"
-DO_SPACES_SECRET_KEY="your_do_spaces_secret_key" # TODO: Replace with actual secret key
+DO_SPACES_SECRET_KEY="yQcbWvxlBoEe6YghTBu2GXAs8AVPBo39i1s9ia6rFcQ"
 DO_SPACES_BUCKET="survey-system"
 
 # Email for SSL
