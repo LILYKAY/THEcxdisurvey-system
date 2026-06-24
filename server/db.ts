@@ -427,7 +427,9 @@ export async function getSurveyEndMessage(surveyId: number): Promise<string | nu
 export async function createSurveyQuestion(data: InsertSurveyQuestion) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.insert(surveyQuestions).values(data).returning();
+  await db.insert(surveyQuestions).values(data);
+  // MySQL: fetch the inserted row by querying the latest insert
+  const result = await db.select().from(surveyQuestions).where(eq(surveyQuestions.surveyId, data.surveyId)).orderBy(desc(surveyQuestions.id)).limit(1);
   return result[0] ?? null;
 }
 
@@ -501,7 +503,9 @@ export async function getContactsByOrg(organizationId: number) {
 export async function createContact(data: InsertContact) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.insert(contacts).values(data).returning();
+  await db.insert(contacts).values(data);
+  // MySQL: fetch the inserted row by querying the latest insert
+  const result = await db.select().from(contacts).where(eq(contacts.email, data.email)).orderBy(desc(contacts.id)).limit(1);
   return result[0] ?? null;
 }
 
@@ -544,7 +548,9 @@ export async function getAudiencesByOrg(organizationId: number) {
 export async function createAudience(data: InsertAudience) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.insert(audiences).values(data).returning();
+  await db.insert(audiences).values(data);
+  // MySQL: fetch the inserted row by querying the latest insert
+  const result = await db.select().from(audiences).where(eq(audiences.organizationId, data.organizationId)).orderBy(desc(audiences.id)).limit(1);
   return result[0] ?? null;
 }
 
