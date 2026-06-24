@@ -1,6 +1,6 @@
 import { and, count, desc, eq, gte, inArray, ne, sql } from "drizzle-orm";
-import { type PostgresJsDatabase, drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { type MySQLDatabase, drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import {
   InsertAudience,
   AudienceContact,
@@ -40,35 +40,15 @@ import {
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
-let _db: PostgresJsDatabase | null = null;
+let _db: MySQLDatabase | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
       console.log("[Database] Attempting connection...");
       
-      // Parse connection string into individual parameters to avoid parsing issues
-      const url = new URL(process.env.DATABASE_URL);
-      const config = {
-        host: url.hostname,
-        port: parseInt(url.port || '5432', 10),
-        database: url.pathname.slice(1),
-        username: url.username,
-        password: url.password,
-        ssl: url.searchParams.get('sslmode') === 'require' ? 'require' : false,
-        max: 5,
-        connect_timeout: 10,
-      };
-      
-      console.log("[Database] Connection config:", {
-        host: config.host,
-        port: config.port,
-        database: config.database,
-        username: config.username,
-        ssl: config.ssl,
-      });
-      
-      const client = postgres(config as any);
-      _db = drizzle(client);
+      // Create connection pool
+      const connection = await mysql.createConnection(process.env.DATABASE_URL);
+      _db = drizzle(connection);
       console.log("[Database] Connected successfully");
     } catch (error) {
       console.error("[Database] Connection failed:", {

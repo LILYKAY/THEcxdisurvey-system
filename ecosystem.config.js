@@ -10,8 +10,9 @@ module.exports = {
       },
       env_production: {
         NODE_ENV: 'production',
-        // Database connection
-        DATABASE_URL: 'postgresql://doadmin:AVNS_LcSSmGlgOXC-MTd066d@db-pgsql-nyc3-11782-do-user-39091696-0.j.db.ondigitalocean.com:25060/defaultdb?sslmode=require',
+        // Database connection (MySQL format)
+        // Format: mysql://username:password@host:port/database
+        DATABASE_URL: 'mysql://doadmin:PASSWORD@db-mysql-host:25060/defaultdb',
         
         // Session/JWT configuration
         JWT_SECRET: 'ymmP/DGEDsQIkEe1SIaVvj/qjL7phPFR/8OPTA1rxk0=',
