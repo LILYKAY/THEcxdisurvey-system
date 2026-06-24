@@ -383,17 +383,36 @@
 
 ## Phase 29: DigitalOcean Production Deployment
 
-- [x] Fix cookie security configuration (SameSite=strict and domain restriction)
-- [x] Create comprehensive DigitalOcean deployment guide with Nginx, SSL, PM2
-- [x] Create automated deployment scripts for one-click setup
-- [ ] Provision DigitalOcean Droplet (Ubuntu 24.04, 2GB+ RAM)
-- [ ] Provision DigitalOcean Managed PostgreSQL Database
-- [ ] Configure DNS records (A record for domain, CNAME for www)
-- [ ] Update environment variables on Droplet with PostgreSQL connection string
-- [ ] Run deployment script on Droplet (full automated setup)
-- [ ] Verify HTTPS working and SSL certificate auto-renewal
-- [ ] Verify Nginx proxying correctly to Node.js app
-- [ ] Test application functionality on production domain
+### Phase 29.1: Remove Manus Dependencies & Create Standalone Deployment
+- [x] Create OpenAI LLM service (server/_core/openai-llm.ts) to replace Manus LLM
+- [x] Create DigitalOcean Spaces storage service (server/_core/do-spaces.ts) to replace Manus storage
+- [x] Update AI analysis to use OpenAI instead of Manus LLM
+- [x] Install OpenAI npm package (openai@6.44.0)
+- [x] Install AWS SDK for DigitalOcean Spaces (@aws-sdk/client-s3, @aws-sdk/s3-request-presigner)
+- [x] Create comprehensive deployment script with standalone services
+- [x] Document step-by-step instructions for running the script in DigitalOcean Web Console
+- [x] Include instructions for setting up environment variables (PostgreSQL, OpenAI, DO Spaces)
+- [x] Provide Nginx configuration for reverse proxy and SSL
+- [x] Provide PM2 configuration for process management
+
+### Phase 29.2: Prepare Application Build
+- [x] Build the application for production (dist/public/ and dist/index.js generated successfully)
+- [x] Ensure all environment variables are correctly configured for production build
+- [x] Verify TypeScript compilation (0 errors)
+- [x] All tests passing (22 tests)
+
+### Phase 29.3: Deploy to DigitalOcean via Web Console
+- [ ] User provides DigitalOcean Spaces secret key
+- [ ] User runs the deployment script in DigitalOcean Web Console
+- [ ] Application is cloned, dependencies installed, and built
+- [ ] Nginx and PM2 are configured and started
+- [ ] SSL certificates are obtained and configured via Certbot
+- [ ] Cron job set up for SSL auto-renewal
+
+### Phase 29.4: Verify Deployment & Test
+- [ ] Verify HTTPS is working and SSL certificate auto-renewal is configured
+- [ ] Verify Nginx is proxying correctly to the Node.js app
+- [ ] Test application functionality on the production domain
 - [ ] Setup monitoring and log rotation
 - [ ] Setup automated database backups
 - [ ] Enable UFW firewall and security hardening

@@ -1,4 +1,4 @@
-import { invokeLLM } from "./_core/llm";
+import { invokeLLM } from "./_core/openai-llm";
 
 export interface AiAnalysisResult {
   themes: Array<{
