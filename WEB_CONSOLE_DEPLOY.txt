@@ -1,0 +1,136 @@
+================================================================================
+DEPLOYMENT COMMANDS FOR DIGITALOCEAN WEB CONSOLE
+================================================================================
+
+Copy and paste these commands one at a time into the DigitalOcean Web Console.
+
+================================================================================
+STEP 1: NAVIGATE TO PROJECT DIRECTORY
+================================================================================
+
+cd /home/ubuntu/survey-system
+
+================================================================================
+STEP 2: PULL LATEST CODE FROM GITHUB
+================================================================================
+
+git pull origin main
+
+================================================================================
+STEP 3: INSTALL DEPENDENCIES
+================================================================================
+
+pnpm install --frozen-lockfile
+
+================================================================================
+STEP 4: BUILD THE APPLICATION
+================================================================================
+
+pnpm run build
+
+================================================================================
+STEP 5: RESTART PM2
+================================================================================
+
+pm2 restart survey-system
+
+================================================================================
+STEP 6: VIEW RECENT LOGS (to verify it started)
+================================================================================
+
+pm2 logs survey-system --lines 50
+
+================================================================================
+STEP 7: OPEN ANOTHER WEB CONSOLE TAB FOR REAL-TIME LOG MONITORING
+================================================================================
+
+In a NEW browser tab, open the DigitalOcean Web Console again and run:
+
+pm2 logs survey-system --lines 100
+
+This will show you real-time logs as you test the login.
+
+================================================================================
+STEP 8: TEST THE LOGIN
+================================================================================
+
+1. Open your browser: https://thecxdisurveys.com
+2. Go to the login page
+3. Enter test credentials:
+   - Email: test@example.com
+   - Password: (your test password)
+4. Watch the logs in the Web Console for these [LOGIN] messages:
+
+   [LOGIN] Starting login for email: test@example.com
+   [LOGIN] User lookup: Found user 1 with openId local_abc123
+   [LOGIN] Password valid: true
+   [LOGIN] Token created for openId: local_abc123 name: Test User
+   [LOGIN] Cookie options: { domain: 'thecxdisurveys.com', secure: true, sameSite: 'strict' }
+   [LOGIN] Cookie set with maxAge: 31536000 COOKIE_NAME: __session
+
+================================================================================
+STEP 9: CHECK BROWSER DEVTOOLS
+================================================================================
+
+1. Open DevTools (F12)
+2. Go to Application → Cookies
+3. Look for __session cookie
+4. Verify it has:
+   - Name: __session
+   - Value: (long JWT-like string)
+   - Domain: thecxdisurveys.com
+   - Path: /
+   - Secure: ✓ (checked)
+   - SameSite: Strict
+
+5. Go to Network tab
+6. Look at requests to /api/trpc/auth.login
+7. Check request headers for: Cookie: __session=...
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+If deployment fails:
+
+1. Check if Node.js is installed:
+   node --version
+
+2. Check if pnpm is installed:
+   pnpm --version
+
+3. Check if PM2 is installed:
+   pm2 --version
+
+4. Check PM2 status:
+   pm2 status
+
+5. Check full error logs:
+   pm2 logs survey-system --lines 200
+
+6. Check if database is accessible:
+   pm2 env survey-system | grep DATABASE_URL
+
+================================================================================
+QUICK REFERENCE
+================================================================================
+
+Restart application:
+  pm2 restart survey-system
+
+View logs:
+  pm2 logs survey-system --lines 100
+
+Check status:
+  pm2 status survey-system
+
+View environment variables:
+  pm2 env survey-system
+
+Check if port 3000 is running:
+  sudo lsof -i :3000
+
+Check Nginx:
+  sudo systemctl status nginx
+
+================================================================================

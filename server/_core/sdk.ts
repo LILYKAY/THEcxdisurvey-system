@@ -212,9 +212,15 @@ class SDKServer {
       });
       const { openId, appId, name } = payload as Record<string, unknown>;
 
-      // openId and appId are required, but name can be empty for local users
-      if (!isNonEmptyString(openId) || !isNonEmptyString(appId)) {
-        console.warn("[Auth] Session payload missing required fields (openId or appId)");
+      // openId is required. appId can be empty for local users (email/password auth)
+      if (!isNonEmptyString(openId)) {
+        console.warn("[Auth] Session payload missing required field: openId");
+        return null;
+      }
+
+      // appId should be a string (can be empty for local users)
+      if (typeof appId !== "string") {
+        console.warn("[Auth] Session payload appId is not a string");
         return null;
       }
 
@@ -224,6 +230,7 @@ class SDKServer {
         return null;
       }
 
+      console.log("[Auth] Session verified for openId:", openId, "appId:", appId || "(local user)");
       return {
         openId,
         appId,
