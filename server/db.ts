@@ -44,13 +44,14 @@ let _db: PostgresJsDatabase | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
+      // Use connection string directly - postgres library handles SSL parsing
       const client = postgres(process.env.DATABASE_URL, {
-        ssl: 'require',
         max: 5,
       });
       _db = drizzle(client);
+      console.log("[Database] Connected successfully");
     } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
+      console.error("[Database] Failed to connect:", error);
       _db = null;
     }
   }
