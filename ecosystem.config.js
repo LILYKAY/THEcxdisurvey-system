@@ -11,7 +11,7 @@ module.exports = {
       env_production: {
         NODE_ENV: 'production',
         // Database connection
-        DATABASE_URL: 'postgresql://doadmin:show-password@db-pgsql-nyc3-11782-do-user-39091696-0.j.db.ondigitalocean.com:25060/defaultdb?sslmode=require',
+        DATABASE_URL: 'postgresql://doadmin:AVNS_LcSSmGlgOXC-MTd066d@db-pgsql-nyc3-11782-do-user-39091696-0.j.db.ondigitalocean.com:25060/defaultdb?sslmode=require',
         
         // Session/JWT configuration
         JWT_SECRET: 'ymmP/DGEDsQIkEe1SIaVvj/qjL7phPFR/8OPTA1rxk0=',
