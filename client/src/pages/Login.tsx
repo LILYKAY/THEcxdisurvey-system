@@ -15,6 +15,9 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(true);
   const utils = trpc.useUtils();
 
+  // Debug: log state changes
+  console.log("Login component rendered", { email, password, rememberMe });
+
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async () => {
       await utils.auth.me.invalidate();
@@ -34,10 +37,12 @@ export default function Login() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("handleSubmit called", { email, password, rememberMe });
     if (!email || !password) {
       toast.error("Please fill in all fields");
       return;
     }
+    console.log("Calling loginMutation.mutate");
     loginMutation.mutate({ email, password, rememberMe });
   };
 

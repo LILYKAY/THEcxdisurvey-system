@@ -145,16 +145,22 @@ export const appRouter = router({
     login: publicProcedure
       .input(z.object({ email: z.string().email(), password: z.string(), rememberMe: z.boolean().optional().default(true) }))
       .mutation(async ({ input, ctx }) => {
+        console.log("[LOGIN] Starting login for email:", input.email);
         const user = await getUserByEmail(input.email);
+        console.log("[LOGIN] User lookup:", user ? `Found user ${user.id} with openId ${user.openId}` : "Not found");
         if (!user || !user.passwordHash) throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
         const valid = await verifyPassword(input.password, user.passwordHash);
+        console.log("[LOGIN] Password valid:", valid);
         if (!valid) throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
         await upsertUser({ openId: user.openId, lastSignedIn: new Date() });
         const token = await sdk.createSessionToken(user.openId, { name: user.name ?? "" });
+        console.log("[LOGIN] Token created for openId:", user.openId, "name:", user.name);
         const cookieOptions = getSessionCookieOptions(ctx.req);
+        console.log("[LOGIN] Cookie options:", { domain: cookieOptions.domain, secure: cookieOptions.secure, sameSite: cookieOptions.sameSite });
         // rememberMe = true → 1 year; false → session cookie (expires when browser closes)
         const maxAge = input.rememberMe ? ONE_YEAR_MS / 1000 : undefined;
         ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, ...(maxAge ? { maxAge } : {}) });
+        console.log("[LOGIN] Cookie set with maxAge:", maxAge, "COOKIE_NAME:", COOKIE_NAME);
         return { user };
       }),
 
