@@ -12,7 +12,7 @@ module.exports = {
         NODE_ENV: 'production',
         // Database connection (MySQL format)
         // Format: mysql://username:password@host:port/database
-        DATABASE_URL: 'mysql://doadmin:PASSWORD@db-mysql-host:25060/defaultdb',
+        DATABASE_URL: 'mysql://doadmin:AVNS_nfHp3Gbh3n1_RtwlbvD@db-mysql-nyc3-16637-do-user-39091696-0.a.db.ondigitalocean.com:25060/defaultdb',
         
         // Session/JWT configuration
         JWT_SECRET: 'ymmP/DGEDsQIkEe1SIaVvj/qjL7phPFR/8OPTA1rxk0=',
