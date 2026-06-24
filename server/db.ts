@@ -99,8 +99,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   if (!values.lastSignedIn) values.lastSignedIn = new Date();
   if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();
 
-  await db.insert(users).values(values).onConflictDoUpdate({
-    target: users.openId,
+  await db.insert(users).values(values).onDuplicateKeyUpdate({
     set: updateSet,
   });
 }
@@ -173,8 +172,7 @@ export async function upsertMfaSettings(userId: number, mfaEnabled: boolean) {
   await db
     .insert(mfaSettings)
     .values({ userId, mfaEnabled })
-    .onConflictDoUpdate({
-      target: mfaSettings.userId,
+    .onDuplicateKeyUpdate({
       set: { mfaEnabled, updatedAt: new Date() },
     });
   return true;
@@ -315,8 +313,7 @@ export async function upsertEmailBranding(data: InsertEmailBranding) {
   await db
     .insert(emailBranding)
     .values(data)
-    .onConflictDoUpdate({
-      target: emailBranding.organizationId,
+    .onDuplicateKeyUpdate({
       set: updateData,
     });
   return true;
@@ -1128,8 +1125,7 @@ export async function upsertAiSummary(data: {
   await db
     .insert(surveyAiSummaries)
     .values(data)
-    .onConflictDoUpdate({
-      target: surveyAiSummaries.surveyId,
+    .onDuplicateKeyUpdate({
       set: updateData,
     });
 
