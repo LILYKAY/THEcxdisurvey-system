@@ -279,8 +279,14 @@ class SDKServer {
     const signedInAt = new Date();
     let user = await db.getUserByOpenId(sessionUserId);
 
-    // If user not in DB, sync from OAuth server automatically
+    // If user not in DB, try to sync from OAuth server (but only for non-local users)
     if (!user) {
+      // For local users (email/password), don't try to sync from OAuth
+      if (sessionUserId.startsWith("local_")) {
+        console.warn("[Auth] Local user not found in database:", sessionUserId);
+        throw ForbiddenError("User not found");
+      }
+
       try {
         const userInfo = await this.getUserInfoWithJwt(sessionCookie ?? "");
         await db.upsertUser({
