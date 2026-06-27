@@ -350,15 +350,18 @@ function QuestionField({ question, value, onChange }: {
     };
     return (
       <div className="space-y-2.5">
-        {maxSel && <p className="text-xs text-muted-foreground">Select up to {maxSel} options</p>}
+        {maxSel && <p className={"text-xs font-medium " + (arrVal.length >= maxSel ? "text-amber-600" : "text-muted-foreground")}>{arrVal.length >= maxSel ? `Maximum ${maxSel} selections reached — deselect one to choose another` : `Select up to ${maxSel} options (${arrVal.length}/${maxSel} selected)`}</p>}
         {opts.map((opt) => {
           const checked = arrVal.includes(opt.value);
+          const isMaxed = !checked && !!maxSel && arrVal.length >= maxSel;
           return (
             <label key={opt.value} className={cn(
-              "flex cursor-pointer items-center gap-3 rounded-lg border-2 px-4 py-3 text-sm transition-all",
+              "flex items-center gap-3 rounded-lg border-2 px-4 py-3 text-sm transition-all",
               checked
-                ? "border-primary bg-primary/5 font-medium text-foreground shadow-sm"
-                : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-secondary/50"
+                ? "border-primary bg-primary/5 font-medium text-foreground shadow-sm cursor-pointer"
+                : isMaxed
+                  ? "border-border bg-muted/50 text-muted-foreground/50 cursor-not-allowed opacity-60"
+                  : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-secondary/50 cursor-pointer"
             )}>
               <div className={cn(
                 "flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border-2 transition-colors",
@@ -554,7 +557,7 @@ export default function SurveyPage() {
         type: q.questionType as QuestionType,
         required: !!q.isRequired,
         options: parsedOptions,
-        maxSelections: q.maxSelections ?? null,
+        maxSelections: q.maxSelections ?? (q.questionType === "multiple_choice_multi" ? 3 : null),
         maxChars: q.maxChars ?? null,
       };
     });

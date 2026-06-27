@@ -15,6 +15,7 @@ import { AiInsights } from "@/components/AiInsights";
 function ExportButtons({ surveyId, surveyTitle }: { surveyId: number; surveyTitle: string }) {
   const [isExporting, setIsExporting] = useState(false);
   const { mutate: downloadPdf } = trpc.surveys.downloadPdf.useMutation();
+  const { mutate: exportCsv } = trpc.surveys.exportCsv.useMutation();
 
   const handleExportPDF = async () => {
     if (!surveyId) return;
@@ -44,9 +45,23 @@ function ExportButtons({ surveyId, surveyTitle }: { surveyId: number; surveyTitl
     if (!surveyId) return;
     setIsExporting(true);
     try {
-      // For now, CSV export would require a backend procedure
-      // This is a placeholder that shows the UI pattern
-      toast.info("CSV export coming soon");
+      exportCsv(
+        { surveyId },
+        {
+          onSuccess: (data) => {
+            const blob = new Blob([data.csv], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = data.filename;
+            link.click();
+            URL.revokeObjectURL(link.href);
+            toast.success("CSV downloaded successfully");
+          },
+          onError: () => {
+            toast.error("Failed to export CSV");
+          },
+        }
+      );
     } finally {
       setIsExporting(false);
     }

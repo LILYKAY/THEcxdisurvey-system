@@ -675,6 +675,69 @@ export const appRouter = router({
       });
       return { pdf: pdfBuffer.toString("base64") };
     }),
+    exportCsv: protectedProcedure.input(z.object({ surveyId: z.number() })).mutation(async ({ input, ctx }) => {
+      const survey = await getSurveyById(input.surveyId);
+      if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+      const org = await getOrganizationById(survey.organizationId);
+      if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+      const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
+      const [responses, questions] = await Promise.all([
+        getSurveyResponsesBySurvey(input.surveyId),
+        getSurveyQuestions(input.surveyId),
+      ]);
+      // Get all answers and respondent info
+      const allAnswers = await Promise.all(responses.map(async (r: any) => {
+        const answers = await getAnswersByResponse(r.id);
+        const respondent = r.respondentId ? await getRespondentById(r.respondentId) : null;
+        return { responseId: r.id, respondent, answers, response: r };
+      }));
+      // Build CSV header: Respondent Name, Email, Completed, NPS, CSAT, CES, then each question
+      const activeQuestions = questions.filter((q: any) => q.isActive && q.questionType !== "end_message");
+      const headers = ["Respondent Name", "Respondent Email", "Completed At", "NPS Score", "CSAT Score", "CES Score"];
+      activeQuestions.forEach((q: any) => headers.push(q.questionText));
+      // Build CSV rows
+      const rows = allAnswers.map(({ respondent, answers, response }) => {
+        const row: string[] = [
+          respondent?.name ?? "Anonymous",
+          respondent?.email ?? "",
+          response.completedAt ? new Date(response.completedAt).toISOString().split("T")[0] : "Incomplete",
+          response.npsScore != null ? String(response.npsScore) : "",
+          response.csatScore != null ? String(response.csatScore) : "",
+          response.cesScore != null ? String(response.cesScore) : "",
+        ];
+        activeQuestions.forEach((q: any) => {
+          const answer = answers.find((a: any) => a.questionKey === q.questionKey);
+          if (!answer || answer.value == null) { row.push(""); return; }
+          const val = answer.value;
+          if (Array.isArray(val)) {
+            // Multi-choice: map option values to labels
+            const opts = (q.options as Array<{value: string; label: string}> | null) ?? [];
+            const labels = val.map((v: string) => {
+              const opt = opts.find((o) => o.value === v);
+              return opt ? opt.label : v;
+            });
+            row.push(labels.join("; "));
+          } else if (typeof val === "string") {
+            // Single choice: map to label if possible
+            const opts = (q.options as Array<{value: string; label: string}> | null) ?? [];
+            const opt = opts.find((o) => o.value === val);
+            row.push(opt ? opt.label : val);
+          } else {
+            row.push(String(val));
+          }
+        });
+        return row;
+      });
+      // Escape CSV values
+      const escapeCsv = (v: string) => {
+        if (v.includes(",") || v.includes('"') || v.includes("\n")) return `"${v.replace(/"/g, '""')}"`;
+        return v;
+      };
+      const csvLines = [headers.map(escapeCsv).join(",")];
+      rows.forEach((row) => csvLines.push(row.map(escapeCsv).join(",")));
+      return { csv: csvLines.join("\n"), filename: `${survey.title}-responses.csv` };
+    }),
   }),
 
   questions: router({
