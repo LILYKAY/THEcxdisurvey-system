@@ -996,17 +996,12 @@ export const appRouter = router({
         const resend = await import("resend").then(m => new m.Resend(process.env.RESEND_API_KEY!));
         await resend.emails.send({
           from: "CXDi SurveyPro <noreply@thecxdisurveys.com>",
+          replyTo: "support@thecxdisurveys.com",
           to: input.email,
-          subject: `You've been invited to manage ${org.name} on CXDi SurveyPro`,
-          html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:40px 20px;">
-            <h2 style="color:#03989e;">You've been invited to manage ${org.name}</h2>
-            <p>Hi${input.name ? " " + input.name : ""},</p>
-            <p>You have been invited to manage the <strong>${org.name}</strong> organization on CXDi SurveyPro. Click the button below to set up your account.</p>
-            <a href="${inviteUrl}" style="display:inline-block;background:#03989e;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:20px 0;">Accept Invitation &rarr;</a>
-            <p style="color:#6b7280;font-size:12px;">This invitation expires in 7 days. If you did not expect this message, you may safely ignore it.</p>
-            <p style="color:#9ca3af;font-size:11px;">Powered by CXDi SurveyPro</p>
-          </div>`,
-          text: `You've been invited to manage ${org.name} on CXDi SurveyPro.\n\nAccept your invitation: ${inviteUrl}\n\nThis link expires in 7 days.`,
+          subject: `${ctx.user.name || "A colleague"} invited you to manage ${org.name}`,
+          html: `<!DOCTYPE html><html><head><meta charset="UTF-8" /></head><body style="margin:0;padding:20px;font-family:Arial,sans-serif;font-size:14px;color:#333;"><p>Hi${input.name ? " " + input.name : ""},</p><p>You have been invited to manage the <strong>${org.name}</strong> organization. Click the link below to set up your account:</p><p><a href="${inviteUrl}" style="color:#0066cc;">${inviteUrl}</a></p><p>This invitation expires in 7 days. If you did not expect this message, you can safely ignore it.</p><p style="margin-top:24px;color:#666;font-size:13px;">CXDi SurveyPro</p></body></html>`,
+          text: `Hi${input.name ? " " + input.name : ""},\n\nYou have been invited to manage the ${org.name} organization.\n\nAccept your invitation: ${inviteUrl}\n\nThis link expires in 7 days.\n\nCXDi SurveyPro`,
+          headers: { "X-Priority": "1", "Importance": "high", "X-Entity-Ref-ID": `invite-${Date.now()}` },
         });
         return { success: true };
       }),
