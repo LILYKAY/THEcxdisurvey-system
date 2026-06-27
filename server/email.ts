@@ -11,7 +11,7 @@ function getResend(): Resend {
   return _resend;
 }
 
-const FROM_ADDRESS = "SurveyPro <noreply@thecxdi.com>";
+const FROM_ADDRESS = "SurveyPro <noreply@thecxdisurveys.com>";
 
 // ─── Branding Defaults ────────────────────────────────────────────────────────
 

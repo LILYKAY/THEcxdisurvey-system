@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
-import { Plus, Trash2, GripVertical, ArrowLeft, Send, CalendarIcon, X, Edit2 } from "lucide-react";
+import { Plus, Trash2, GripVertical, ArrowLeft, Send, CalendarIcon, X, Edit2, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const QUESTION_TYPES = [
@@ -48,9 +48,15 @@ export default function OrgSurveyBuilder() {
   const [qOptions, setQOptions] = useState<string[]>(["Option 1", "Option 2"]);
   const [expiryOpen, setExpiryOpen] = useState(false);
 
-  // Thank You screen customisation
+  // Welcome Message state
+  const [editingWelcome, setEditingWelcome] = useState(false);
+  const [welcomeDraft, setWelcomeDraft] = useState("");
+
+  // Thank You Headline state
   const [editingHeadline, setEditingHeadline] = useState(false);
   const [headlineDraft, setHeadlineDraft] = useState("");
+
+  // Closing Message state
   const [editingClosing, setEditingClosing] = useState(false);
   const [closingDraft, setClosingDraft] = useState("");
 
@@ -60,6 +66,10 @@ export default function OrgSurveyBuilder() {
   const [editQRequired, setEditQRequired] = useState(true);
   const [editQOptions, setEditQOptions] = useState<string[]>([]);
 
+  // Title editing state
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+
   const needsOptions = ["multiple_choice_single", "multiple_choice_multi"].includes(qType);
 
   const { data: survey } = trpc.surveys.get.useQuery({ id: surveyIdNum });
@@ -68,11 +78,39 @@ export default function OrgSurveyBuilder() {
   // Derive the current expiry date from the loaded survey
   const currentExpiry = survey?.expiresAt ? new Date(survey.expiresAt) : undefined;
 
-  const setThankYouHeadline = trpc.surveys.setThankYouHeadline.useMutation({
+  const setTitleMutation = trpc.surveys.setTitle.useMutation({
+    onSuccess: () => {
+      utils.surveys.get.invalidate({ id: surveyIdNum });
+      setEditingTitle(false);
+      toast.success("Survey title updated");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleSaveTitle = () => {
+    if (!titleDraft.trim()) {
+      toast.error("Title cannot be empty");
+      return;
+    }
+    setTitleMutation.mutate({ id: surveyIdNum, title: titleDraft.trim() });
+  };
+
+  // Welcome Message mutation - the single welcome message shown on the survey landing page
+  const setWelcomeMessageMutation = trpc.surveys.setWelcomeMessage.useMutation({
+    onSuccess: () => {
+      utils.surveys.get.invalidate({ id: surveyIdNum });
+      setEditingWelcome(false);
+      toast.success("Welcome message updated");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  // Thank You Headline mutation - shown on the completion screen
+  const setThankYouHeadlineMutation = trpc.surveys.setThankYouHeadline.useMutation({
     onSuccess: () => {
       utils.surveys.get.invalidate({ id: surveyIdNum });
       setEditingHeadline(false);
-      toast.success("Thank You headline updated");
+      toast.success("Thank you headline updated");
     },
     onError: (e) => toast.error(e.message),
   });
@@ -174,7 +212,40 @@ export default function OrgSurveyBuilder() {
               <ArrowLeft className="w-4 h-4 mr-1" /> Back
             </Button>
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">{survey?.title ?? "Survey Builder"}</h1>
+              {editingTitle ? (
+                <div className="flex gap-2 items-center mb-2">
+                  <Input
+                    value={titleDraft}
+                    onChange={(e) => setTitleDraft(e.target.value)}
+                    placeholder="Enter survey title"
+                    className="text-2xl sm:text-3xl font-bold h-auto py-2"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveTitle();
+                      if (e.key === "Escape") setEditingTitle(false);
+                    }}
+                    autoFocus
+                  />
+                  <Button size="sm" onClick={handleSaveTitle} disabled={setTitleMutation.isPending}>
+                    Save
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setEditingTitle(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <div
+                  className="flex items-center gap-2 group cursor-pointer"
+                  onClick={() => {
+                    setTitleDraft(survey?.title ?? "");
+                    setEditingTitle(true);
+                  }}
+                >
+                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">
+                    {survey?.title ?? "Survey Builder"}
+                  </h1>
+                  <Pencil className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                </div>
+              )}
               <p className="text-sm text-muted-foreground mt-1">{questions?.length ?? 0} questions</p>
             </div>
           </div>
@@ -281,16 +352,83 @@ export default function OrgSurveyBuilder() {
                 </Popover>
               </div>
             </div>
+
             {/* Separator */}
             <div className="border-t border-border" />
 
-            {/* Thank You Headline */}
+            {/* Welcome Message - the single welcome message shown on the survey landing page */}
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="flex-1">
+                  <Label className="text-sm font-semibold text-foreground block mb-1">Welcome Message</Label>
+                  <p className="text-xs text-muted-foreground">
+                    The welcome message shown to respondents on the survey landing page before they start answering questions.
+                  </p>
+                </div>
+                {!editingWelcome && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 h-10 px-4 font-medium"
+                    onClick={() => {
+                      setWelcomeDraft((survey as any)?.welcomeMessage ?? "");
+                      setEditingWelcome(true);
+                    }}
+                  >
+                    {(survey as any)?.welcomeMessage ? "Edit" : "Set welcome message"}
+                  </Button>
+                )}
+              </div>
+              {(survey as any)?.welcomeMessage && !editingWelcome && (
+                <p className="text-sm text-foreground italic border-l-2 border-primary pl-3 whitespace-pre-wrap">
+                  {(survey as any).welcomeMessage}
+                </p>
+              )}
+              {editingWelcome && (
+                <div className="space-y-3">
+                  <Textarea
+                    value={welcomeDraft}
+                    onChange={(e) => setWelcomeDraft(e.target.value)}
+                    placeholder="e.g. Thank you for taking the time to share your feedback. Your responses will help us improve our services."
+                    rows={4}
+                    autoFocus
+                  />
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      size="sm"
+                      onClick={() => setWelcomeMessageMutation.mutate({ id: surveyIdNum, welcomeMessage: welcomeDraft.trim() || null })}
+                      disabled={setWelcomeMessageMutation.isPending}
+                      className="h-10 px-4 font-medium"
+                    >
+                      {setWelcomeMessageMutation.isPending ? "Saving…" : "Save"}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditingWelcome(false)} className="h-10 px-4 font-medium">Cancel</Button>
+                    {(survey as any)?.welcomeMessage && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-500 hover:text-red-700 ml-auto h-10 px-4 font-medium"
+                        onClick={() => setWelcomeMessageMutation.mutate({ id: surveyIdNum, welcomeMessage: null })}
+                        disabled={setWelcomeMessageMutation.isPending}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Separator */}
+            <div className="border-t border-border" />
+
+            {/* Thank You Headline - shown on the completion screen */}
             <div className="space-y-2">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="flex-1">
                   <Label className="text-sm font-semibold text-foreground block mb-1">Thank You Headline</Label>
                   <p className="text-xs text-muted-foreground">
-                    The bold heading shown on the completion screen after submission.
+                    The headline shown on the survey completion screen after respondents submit their answers.
                   </p>
                 </div>
                 {!editingHeadline && (
@@ -317,7 +455,7 @@ export default function OrgSurveyBuilder() {
                   <Input
                     value={headlineDraft}
                     onChange={(e) => setHeadlineDraft(e.target.value)}
-                    placeholder="e.g. Thank you for your time!"
+                    placeholder="e.g. Thank You!"
                     maxLength={255}
                     autoFocus
                     className="h-11"
@@ -325,11 +463,11 @@ export default function OrgSurveyBuilder() {
                   <div className="flex gap-2 flex-wrap">
                     <Button
                       size="sm"
-                      onClick={() => setThankYouHeadline.mutate({ id: surveyIdNum, thankYouHeadline: headlineDraft.trim() || null })}
-                      disabled={setThankYouHeadline.isPending}
+                      onClick={() => setThankYouHeadlineMutation.mutate({ id: surveyIdNum, thankYouHeadline: headlineDraft.trim() || null })}
+                      disabled={setThankYouHeadlineMutation.isPending}
                       className="h-10 px-4 font-medium"
                     >
-                      {setThankYouHeadline.isPending ? "Saving…" : "Save"}
+                      {setThankYouHeadlineMutation.isPending ? "Saving…" : "Save"}
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => setEditingHeadline(false)} className="h-10 px-4 font-medium">Cancel</Button>
                     {(survey as any)?.thankYouHeadline && (
@@ -337,8 +475,8 @@ export default function OrgSurveyBuilder() {
                         size="sm"
                         variant="ghost"
                         className="text-red-500 hover:text-red-700 ml-auto h-10 px-4 font-medium"
-                        onClick={() => setThankYouHeadline.mutate({ id: surveyIdNum, thankYouHeadline: null })}
-                        disabled={setThankYouHeadline.isPending}
+                        onClick={() => setThankYouHeadlineMutation.mutate({ id: surveyIdNum, thankYouHeadline: null })}
+                        disabled={setThankYouHeadlineMutation.isPending}
                       >
                         Remove
                       </Button>

@@ -961,6 +961,7 @@ export async function getOrgResponseFeed(organizationId: number, limit = 20) {
       sentiment: surveyResponses.sentiment,
       isComplete: surveyResponses.isComplete,
       completedAt: surveyResponses.completedAt,
+      createdAt: surveyResponses.createdAt,
       surveyTitle: surveys.title,
     })
     .from(surveyResponses)

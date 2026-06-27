@@ -356,8 +356,9 @@ function QuestionField({ question, value, onChange }: {
           return (
             <label key={opt.value} className={cn(
               "flex cursor-pointer items-center gap-3 rounded-lg border-2 px-4 py-3 text-sm transition-all",
-              checked ? "border-primary bg-primary/5 font-medium text-foreground shadow-sm"
-                      : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-secondary/50"
+              checked
+                ? "border-primary bg-primary/5 font-medium text-foreground shadow-sm"
+                : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:bg-secondary/50"
             )}>
               <div className={cn(
                 "flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border-2 transition-colors",
@@ -365,8 +366,7 @@ function QuestionField({ question, value, onChange }: {
               )}>
                 {checked && <CheckCircle2 className="h-3 w-3 text-primary-foreground" />}
               </div>
-              <input type="checkbox" className="sr-only" value={opt.value} checked={checked}
-                onChange={() => toggle(opt.value)} />
+              <input type="checkbox" className="sr-only" checked={checked} onChange={() => toggle(opt.value)} />
               {opt.label}
             </label>
           );
@@ -375,9 +375,13 @@ function QuestionField({ question, value, onChange }: {
     );
   }
 
+  if (question.type === "end_message") {
+    return <p className="text-muted-foreground italic">{question.text}</p>;
+  }
+
   if (question.type === "consent") {
     return (
-      <label className="flex cursor-pointer items-start gap-3 rounded-lg border-2 px-4 py-3 text-sm transition-all border-border bg-card hover:border-primary/40">
+      <label className="flex items-start gap-3 cursor-pointer rounded-lg border-2 border-border px-4 py-4 hover:border-primary/40 transition-all">
         <input type="checkbox" className="mt-0.5 h-4 w-4 accent-primary"
           checked={strVal === "true"} onChange={(e) => onChange(e.target.checked ? "true" : null)} />
         <span className="text-muted-foreground">I agree and consent to this survey</span>
@@ -388,6 +392,62 @@ function QuestionField({ question, value, onChange }: {
   return null;
 }
 
+
+// ─── Welcome Screen ──────────────────────────────────────────────────────────
+function WelcomeScreen({ surveyTitle, branding, welcomeMessage, onStart }: {
+  surveyTitle: string;
+  branding?: { logoUrl?: string | null; primaryColor?: string | null; signatureTag?: string | null } | null;
+  welcomeMessage?: string | null;
+  onStart: () => void;
+}) {
+  const primary = branding?.primaryColor ?? "#03989e";
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border sticky top-0 z-10">
+        <div className="container flex h-16 items-center justify-between">
+          <div className="flex items-center bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-4 py-2 rounded-lg">
+            <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-12 w-auto" />
+          </div>
+        </div>
+      </header>
+      <div className="container max-w-2xl py-10 sm:py-16 px-4 sm:px-6">
+        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-8 animate-fade-in">
+          {/* Organization logo - shown prominently on the welcome/landing page */}
+          {branding?.logoUrl ? (
+            <img src={branding.logoUrl} alt="Organisation logo" className="h-16 sm:h-20 object-contain" />
+          ) : null}
+          <div className="space-y-4 max-w-lg">
+            <h1 className="font-serif text-3xl sm:text-4xl font-bold text-foreground">
+              {surveyTitle}
+            </h1>
+            {welcomeMessage && (
+              <p className="text-muted-foreground text-base sm:text-lg leading-relaxed whitespace-pre-wrap">
+                {welcomeMessage}
+              </p>
+            )}
+            {!welcomeMessage && (
+              <p className="text-muted-foreground text-base sm:text-lg leading-relaxed">
+                We value your feedback. This survey will only take a few minutes to complete.
+              </p>
+            )}
+          </div>
+          <Button
+            onClick={onStart}
+            size="lg"
+            className="gap-2 px-8 py-6 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
+            style={{ backgroundColor: primary }}
+          >
+            Start Survey
+            <ArrowRight className="h-5 w-5" />
+          </Button>
+          {branding?.signatureTag && (
+            <p className="text-xs text-muted-foreground border-t border-border pt-4 max-w-xs">{branding.signatureTag}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Thank You Screen ─────────────────────────────────────────────────────────
 function ThankYouScreen({ surveyTitle, branding, closingMessage, thankYouHeadline, alreadyDone }: {
@@ -439,7 +499,7 @@ export default function SurveyPage() {
   const completeResponse = trpc.public.completeResponse.useMutation();
 
   const [responseId, setResponseId] = useState<number | null>(null);
-  const [step, setStep] = useState<"survey" | "done" | "already_done">("survey");
+  const [step, setStep] = useState<"welcome" | "survey" | "done" | "already_done">("welcome");
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -448,18 +508,22 @@ export default function SurveyPage() {
   // Show already-completed screen immediately if invitation was already used
   const alreadyCompleted = data?.alreadyCompleted ?? false;
 
-  // Auto-start response as soon as survey data loads (no intro screen)
-  // Guard: do not start if the survey has expired
+  // Survey expiry check
   const surveyExpiresAt = data ? (data.survey as any).expiresAt : null;
   const isSurveyExpired = surveyExpiresAt && new Date(surveyExpiresAt) < new Date();
 
-  useEffect(() => {
-    if (!data || alreadyCompleted || responseId || isSurveyExpired) return;
-    startResponse.mutateAsync({ token: token ?? "" })
-      .then((result) => setResponseId(result.responseId))
-      .catch((e) => console.error("startResponse error:", e));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [!!data, alreadyCompleted, !!isSurveyExpired]);
+  // Start response when user clicks "Start Survey" on the welcome screen
+  const handleStartSurvey = async () => {
+    if (!data || !token) return;
+    try {
+      const result = await startResponse.mutateAsync({ token });
+      setResponseId(result.responseId);
+      setStep("survey");
+    } catch (e: any) {
+      console.error("startResponse error:", e);
+      setStep("survey"); // Still proceed even if start fails
+    }
+  };
 
   const questions: SurveyQuestion[] = useMemo(() => {
     if (!data?.questions) return [];
@@ -553,11 +617,8 @@ export default function SurveyPage() {
     }
   };
 
-  // Show skeleton while fetching survey data OR while auto-starting the response
-  // Do not show skeleton for expired surveys — they skip to the closed screen
-  const isInitializing = isLoading || (!!data && !alreadyCompleted && !isSurveyExpired && !responseId && startResponse.isPending);
-
-  if (isInitializing) {
+  // Show skeleton while fetching survey data
+  if (isLoading) {
     return <SurveySkeleton />;
   }
 
@@ -609,8 +670,39 @@ export default function SurveyPage() {
     );
   }
 
+  // Already completed screen
+  if (alreadyCompleted) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-border sticky top-0 z-10">
+          <div className="container flex h-16 items-center justify-between">
+            <div className="flex items-center bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-4 py-2 rounded-lg">
+              <img src="/manus-storage/cxdi-logo-transparent_f890673f.png" alt="The CXDi Surveys" className="h-12 w-auto" />
+            </div>
+          </div>
+        </header>
+        <div className="container max-w-2xl py-6 sm:py-10 px-4 sm:px-6">
+          <ThankYouScreen surveyTitle={data.survey.title} branding={data.branding} alreadyDone />
+        </div>
+      </div>
+    );
+  }
+
+  // Welcome/Landing screen - shows org logo prominently
+  if (step === "welcome") {
+    return (
+      <WelcomeScreen
+        surveyTitle={data.survey.title}
+        branding={data.branding}
+        welcomeMessage={(data.survey as any).welcomeMessage}
+        onStart={handleStartSurvey}
+      />
+    );
+  }
+
   const isLastQuestion = currentQ === totalQ - 1;
 
+  // Question pages - NO org logo, only CXDi platform logo in header
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border sticky top-0 z-10">
@@ -633,11 +725,8 @@ export default function SurveyPage() {
             thankYouHeadline={(data.survey as any).thankYouHeadline}
           />
         )}
-        {(step === "already_done" || alreadyCompleted) && (
-          <ThankYouScreen surveyTitle={data.survey.title} branding={data.branding} alreadyDone />
-        )}
 
-        {step === "survey" && !alreadyCompleted && (
+        {step === "survey" && (
           <div className="animate-fade-in">
             <div className="mb-8">
               <div className="mb-2 flex items-center justify-between text-sm">

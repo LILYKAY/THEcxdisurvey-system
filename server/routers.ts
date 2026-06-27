@@ -507,6 +507,18 @@ export const appRouter = router({
         await updateSurvey(input.id, { expiresAt: input.expiresAt } as any);
         return { success: true };
       }),
+    setTitle: protectedProcedure
+      .input(z.object({ id: z.number(), title: z.string().min(1).max(255) }))
+      .mutation(async ({ input, ctx }) => {
+        const survey = await getSurveyById(input.id);
+        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+        const org = await getOrganizationById(survey.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+        if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
+        await updateSurvey(input.id, { title: input.title } as any);
+        return { success: true };
+      }),
     setThankYouHeadline: protectedProcedure
       .input(z.object({ id: z.number(), thankYouHeadline: z.string().max(255).nullable() }))
       .mutation(async ({ input, ctx }) => {
@@ -529,6 +541,18 @@ export const appRouter = router({
         const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
       if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
         await updateSurvey(input.id, { closingMessage: input.closingMessage } as any);
+        return { success: true };
+      }),
+    setWelcomeMessage: protectedProcedure
+      .input(z.object({ id: z.number(), welcomeMessage: z.string().nullable() }))
+      .mutation(async ({ input, ctx }) => {
+        const survey = await getSurveyById(input.id);
+        if (!survey) throw new TRPCError({ code: "NOT_FOUND" });
+        const org = await getOrganizationById(survey.organizationId);
+        if (!org) throw new TRPCError({ code: "NOT_FOUND" });
+        const isOrgMgr = ctx.user.role === "org_manager" && ctx.user.managedOrgId === org.id;
+      if (ctx.user.role !== "admin" && org.ownerId !== ctx.user.id && !isOrgMgr) throw new TRPCError({ code: "FORBIDDEN" });
+        await updateSurvey(input.id, { welcomeMessage: input.welcomeMessage } as any);
         return { success: true };
       }),
     listAllWithStats: adminProcedure.query(() => getAllSurveysWithStats()),
@@ -908,7 +932,7 @@ export const appRouter = router({
         // Send invite email
         const resend = await import("resend").then(m => new m.Resend(process.env.RESEND_API_KEY!));
         await resend.emails.send({
-          from: "CXDi SurveyPro <noreply@thecxdi.com>",
+          from: "CXDi SurveyPro <noreply@thecxdisurveys.com>",
           to: input.email,
           subject: `You've been invited to manage ${org.name} on CXDi SurveyPro`,
           html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:40px 20px;">

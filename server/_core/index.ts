@@ -35,6 +35,8 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
+  // Serve uploaded files from local storage
+  app.use("/uploads", express.static("/home/survey-system/uploads"));
   registerUploadRouter(app);
   // tRPC API
   app.use(

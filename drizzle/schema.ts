@@ -88,6 +88,7 @@ export const surveys = mysqlTable("surveys", {
   description: text("description"),
   closingMessage: text("closingMessage"),
   thankYouHeadline: varchar("thankYouHeadline", { length: 255 }),
+  welcomeMessage: text("welcomeMessage"),
   objective: varchar("objective", { length: 100 }),
   joinCode: varchar("joinCode", { length: 20 }).unique(),
   status: mysqlEnum("status", ["draft", "active", "inactive"]).notNull().default("draft"),
